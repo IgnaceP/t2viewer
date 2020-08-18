@@ -35,7 +35,7 @@ class Main(QMainWindow):
         super().__init__()
         # return the parent class from this child class and calls its constructor (constructor = special kind of method to initialize any instance variables (assigning attributes to it))
 
-        title = "Draw Study Area"
+        title = "TELEMAC 2D Output Vizualization"
         top = 50
         left = 50
         width = 1450
@@ -44,12 +44,23 @@ class Main(QMainWindow):
         self.clickcount = 0
         self.F = np.zeros([500,500])
 
-
         self.setWindowTitle(title)
         self.setGeometry(top,left, width, height)
 
         self.main_widget = MyTableWidget(self)
         self.setCentralWidget(self.main_widget)
+
+        self.setStyleSheet("""
+        QWidget {
+            background-color: rgb(35, 35, 35);
+            }
+        """)
+
+        self.main_widget.setStyleSheet("""
+        QWidget {
+            background-color: rgb(45, 45, 45);
+            }
+        """)
 
         self.show()
 
@@ -68,50 +79,93 @@ class MyTableWidget(QWidget):
 
         # Qlabel to show the grid in
         Frame = QLabel()
-        Im = QPixmap("./support_files/Frame.png")
-        Im = Im.scaled(700,700)
-        Frame.setPixmap(Im)
-
-        # Qlabel to show the grid in
-        self.Mesh = QLabel()
+        Frame.setFixedSize(700,700)
 
         # Push button to load telemac 2d output
-        Load = QPushButton(self)
+        Load = QPushButton('Load Selafin file')
         Load.clicked.connect(self.openFileNameDialog)
-        Load.setIcon(QIcon('./support_files/Load.png'))
-        Load.setIconSize(QSize(30,30))
         Load.setToolTip('Load the output from a TELEMAC 2D simulation')
+        Load.setStyleSheet("""
+        QPushButton {
+            border-width: 25px solid white;
+            border-radius: 5px;
+            color: rgb(180,180,180);
+            background-color: rgb(55, 55, 60);
+            min-height: 40px;
+            }
+        """)
+        Load.setFixedWidth(150)
 
         # label to show the path of the loaded selafin file
         self.Path_label = QLabel()
+        self.Path_label.setStyleSheet("""
+        QLabel {
+            color: rgb(180,180,180);
+            padding: 10px;
+            }
+        """)
 
         # Spin box for X
         X_label = QLabel('X-coordinate:')
+        X_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        X_label.setStyleSheet("""
+        QLabel {
+            color: rgb(180,180,180);
+            background-color: rgb(35, 35, 35);
+            }
+        """)
         Y_label = QLabel('Y-coordinate:')
-        # Spin box for Y
-        self.X_box = QDoubleSpinBox()
-        self.X_box.setRange(0,1e9)
-        self.X_box.setDecimals(2)
-        self.X_box.setReadOnly(True)
-        self.Y_box = QDoubleSpinBox()
-        self.Y_box.setRange(0,1e9)
-        self.Y_box.setDecimals(2)
-        self.Y_box.setReadOnly(True)
+        Y_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        Y_label.setStyleSheet("""
+        QLabel {
+            color: rgb(180,180,180);
+            background-color: rgb(35, 35, 35);
+            }
+        """)
 
+        # Spin box for Y
+        self.X_box = QLabel(' ')
+        self.X_box.setStyleSheet("""
+        QLabel {
+            color: rgb(180,180,180);
+            background-color: rgb(35, 35, 35);
+            max-height: 30px;
+            }
+        """)
+        self.Y_box = QLabel(' ')
+        self.Y_box.setStyleSheet("""
+        QLabel {
+            color: rgb(180,180,180);
+            background-color: rgb(35, 35, 35);
+            max-height: 30px;
+            }
+        """)
 
         # Qlabel to paint the selected loc
         self.Painter = Paint(self.X_box, self.Y_box)
         self.Painter.setFixedSize(700,700)
 
         # Push button to load telemac 2d output
-        Plot = QPushButton(self)
+        Plot = QPushButton('Plot water level series')
         Plot.clicked.connect(self.plotTimeSeries)
-        Plot.setIcon(QIcon('./support_files/Plot.png'))
-        Plot.setIconSize(QSize(30,30))
         Plot.setToolTip('Plot time series of surface elevation at selected area.')
+        Plot.setStyleSheet("""
+        QPushButton {
+            border-width: 25px solid white;
+            border-radius: 5px;
+            color: rgb(180,180,180);
+            background-color: rgb(55, 55, 60);
+            min-height: 40px;
+            }
+        """)
+
+        # Qlabel to show the grid in
+        self.Mesh = QLabel()
+        self.Mesh.setFixedSize(700,700)
 
         # Qlabel to load graph into
-        self.Graph = QLabel()
+        self.Graph1 = QLabel()
+        self.Graph2 = QLabel()
 
 
         #------------------------------------------------------#
@@ -128,7 +182,6 @@ class MyTableWidget(QWidget):
         self.grid.setSpacing(10)
 
         self.grid.addWidget(self.Mesh, 0, 0, 10, 1)
-        self.grid.addWidget(Frame, 0, 0, 10, 1)
 
         self.grid.addWidget(Load,0,1,1,1)
         self.grid.addWidget(self.Path_label, 0,2,1,1)
@@ -139,7 +192,8 @@ class MyTableWidget(QWidget):
         self.grid.addWidget(self.Y_box, 2,2,1,1)
 
         self.grid.addWidget(Plot, 3,1,1,2)
-        self.grid.addWidget(self.Graph,4,1,5,2)
+        self.grid.addWidget(self.Graph1,4,1,3,2)
+        self.grid.addWidget(self.Graph2,7,1,3,2)
 
         self.setLayout(self.grid)
 
@@ -154,9 +208,9 @@ class MyTableWidget(QWidget):
     def openFileNameDialog(self):
         options = QFileDialog.Options()
         self.fileName, self.cancel = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","Selafin Files (*.slf)", options=options)
-
+        self.loadMesh()
         try:
-            self.loadMesh()
+
             self.Path_label.setText(self.fileName.split('/')[-1])
 
         except:
@@ -165,11 +219,17 @@ class MyTableWidget(QWidget):
 
     def loadMesh(self):
         fn, self.box = loadMeshFromSLF(self.fileName)
+        print(fn)
         Im = QPixmap(fn)
         Im = Im.scaled(700,700, transformMode = Qt.SmoothTransformation)
         self.Mesh.setPixmap(Im)
 
         self.Painter.setBox(self.box)
+        self.Painter.setStyleSheet("""
+        QLabel {
+            background-color: transparent;
+            }
+        """)
         self.grid.addWidget(self.Painter, 0, 0, 10, 1)
         self.setLayout(self.grid)
 
@@ -177,10 +237,13 @@ class MyTableWidget(QWidget):
 
     def plotTimeSeries(self):
         fn = './previously_loaded_meshes/'+self.fileName.split('/')[-1].split('.')[0]
-        fn = plotT2Series(fn, x = int(self.X_box.value()), y = int(self.Y_box.value()))
-        Im = QPixmap(fn)
-        Im = Im.scaled(350*15/7,350, transformMode = Qt.SmoothTransformation)
-        self.Graph.setPixmap(Im)
+        fn = plotT2Series(fn, x = float(self.X_box.text()), y = float(self.Y_box.text()))
+        Im = QPixmap(fn+'_WSE.png')
+        Im = Im.scaled(200*15/4,200, transformMode = Qt.SmoothTransformation)
+        self.Graph1.setPixmap(Im)
+        Im = QPixmap(fn+'_Vel.png')
+        Im = Im.scaled(200*15/4,200, transformMode = Qt.SmoothTransformation)
+        self.Graph2.setPixmap(Im)
 
 
 

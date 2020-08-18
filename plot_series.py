@@ -2,7 +2,7 @@ import numpy as np
 from getNeigh import getNeighbor
 import matplotlib.pyplot as plt
 
-def plotT2Series(fn, x, y, plot_fn = 'support_files/plot_series.png', start_date = np.datetime64('2015-01-01T00:00:00')):
+def plotT2Series(fn, x, y, plot_fn = 'support_files/plot_series', start_date = np.datetime64('2015-01-01T00:00:00')):
     """
     Function to plot a time series from a Telemac 2D Output file
     ! important note: the resulting plot is not an interpolation but the info from the closest node!
@@ -48,10 +48,35 @@ def plotT2Series(fn, x, y, plot_fn = 'support_files/plot_series.png', start_date
     ry = np.where(Y == y_node)
     i = np.intersect1d(rx,ry)[0]
     print('Distance between POI and node: ',((x_node - x)**2 + (y_node - y)**2)**0.5)
-    series = SE[i,:]
+    SEseries = SE[i,:]
+    Velseries = Vel[i,:]
 
-    f, a = plt.subplots(figsize = (15,7))
-    a.plot(T, series)
-    f.savefig(plot_fn, bbox_inches = 'tight')
+    f, a = plt.subplots(figsize = (15,4))
+    a.plot(T, SEseries)
+    a.grid('on')
+    a.set_ylabel('Water Surface Elevation [m]', fontweight = 'bold', fontsize = 14)
+    a.spines['bottom'].set_color('white')
+    a.spines['top'].set_color('white')
+    a.spines['right'].set_color('white')
+    a.spines['left'].set_color('white')
+    a.tick_params(axis='x', colors='white')
+    a.tick_params(axis='y', colors='white')
+    a.xaxis.label.set_color('white')
+    a.yaxis.label.set_color('white')
+    f.savefig(plot_fn+'_WSE.png', bbox_inches = 'tight', transparent = True)
+
+    f, a = plt.subplots(figsize = (15,4))
+    a.plot(T, Velseries)
+    a.grid('on')
+    a.set_ylabel('Velocity [m/s]', fontweight = 'bold', fontsize = 14)
+    a.spines['bottom'].set_color('white')
+    a.spines['top'].set_color('white')
+    a.spines['right'].set_color('white')
+    a.spines['left'].set_color('white')
+    a.tick_params(axis='x', colors='white')
+    a.tick_params(axis='y', colors='white')
+    a.xaxis.label.set_color('white')
+    a.yaxis.label.set_color('white')
+    f.savefig(plot_fn+'_Vel.png', bbox_inches = 'tight', transparent = True)
 
     return plot_fn

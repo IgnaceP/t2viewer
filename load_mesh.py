@@ -4,6 +4,11 @@ import matplotlib
 matplotlib.use("tkAgg")
 import matplotlib.pyplot as plt
 import os
+import matplotlib.pylab as pl
+from matplotlib.colors import ListedColormap
+
+
+
 
 def loadMeshFromSLF(output_fn):
     """
@@ -35,12 +40,14 @@ def loadMeshFromSLF(output_fn):
         # ------------------------------------------------------------------------------ #
         # Plot the Mesh
         f, a = plt.subplots(figsize=(25,25))
-        tc = a.tripcolor(slf.x, slf.y, slf.ikle-1, np.zeros([np.shape(data)[1]]), cmap= 'Blues', edgecolors = 'k')
+
+        tc = a.tripcolor(slf.x, slf.y, slf.ikle-1, np.zeros([np.shape(data)[1]]), cmap = 'gray')
+        tc.set_edgecolors('white')
         a.axis('off')
         a.set_xlim(xmin - 0.05*xrange, xmax + 0.05*xrange)
         a.set_ylim(ymin - 0.05*yrange, ymax + 0.05*yrange)
         #a.set_aspect('equal')
-        f.savefig(fn_mesh, bbox_inches='tight')
+        f.savefig(fn_mesh, bbox_inches='tight', transparent=True)
 
     else: [xmin, xmax, ymin, ymax] = np.load(fn_box)
 

@@ -57,10 +57,10 @@ class Paint(QLabel):
         self.update()
 
         # update the x and y-box
-        x = (self.xmax - self.xmin) * (self.pos.x()/700) + self.xmin
-        y = self.ymax - (self.ymax - self.ymin) * (self.pos.y()/700) 
-        self.xbox.setValue(x)
-        self.ybox.setValue(y)
+        x = round((self.xmax - self.xmin) * (self.pos.x()/700) + self.xmin,2)
+        y = round(self.ymax - (self.ymax - self.ymin) * (self.pos.y()/700),2)
+        self.xbox.setText(str(x))
+        self.ybox.setText(str(y))
 
     def setBox(self, box):
         self.xmin = box[0]
