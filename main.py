@@ -21,12 +21,15 @@ import os
 import math
 from shutil import copyfile
 import pickle
+import gc
 
 from load_mesh import *
 from paint import Paint
 from plot_series import *
 
+os.chdir('/home/ignace/Custom_Libraries/t2viewer/')
 #%%
+
 class Main(QMainWindow):
 # create a class with heritance from the QWidget object
 
@@ -93,6 +96,10 @@ class MyTableWidget(QWidget):
             background-color: rgb(55, 55, 60);
             min-height: 40px;
             }
+        QPushButton:pressed {
+            color: rgb(120,120,120);
+            background-color: rgb(75, 75, 80);
+            }
         """)
         Load.setFixedWidth(150)
 
@@ -156,6 +163,10 @@ class MyTableWidget(QWidget):
             color: rgb(180,180,180);
             background-color: rgb(55, 55, 60);
             min-height: 40px;
+            }
+        QPushButton:pressed {
+            color: rgb(120,120,120);
+            background-color: rgb(75, 75, 80);
             }
         """)
 
@@ -235,16 +246,56 @@ class MyTableWidget(QWidget):
 
         self.show()
 
+        self.loadArrays()
+
+    def loadArrays(self):
+        fn = './previously_loaded_meshes/'+self.fileName.split('/')[-1].split('.')[0]
+
+        data = np.load(fn + '_data.npy')
+        t = np.load(fn + '_t.npy')
+        X = np.load(fn + '_x.npy')
+        Y = np.load(fn + '_y.npy')
+
+        # get properties
+        U = data[0]
+        V = data[1]
+        H = data[2]
+        B = data[3]
+
+        self.Vel = np.sqrt(U**2+V**2)
+        self.SE = B + H
+
+        self.XY = np.empty([np.shape(X)[0], 2])
+        self.XY[:,0], self.XY[:,1] = X, Y
+
+        # time series
+        start_date = np.datetime64('2015-01-01T00:00:00')
+        T = np.array([start_date], dtype = np.datetime64)
+        for i in range(np.shape(t)[0]):
+            td = np.timedelta64(int(t[i]),'s')
+            T = np.append(T,start_date + td)
+        self.T = T[1:]
+
     def plotTimeSeries(self):
         fn = './previously_loaded_meshes/'+self.fileName.split('/')[-1].split('.')[0]
-        fn = plotT2Series(fn, x = float(self.X_box.text()), y = float(self.Y_box.text()))
+        fn = plotT2Series(T = self.T, XY = self.XY, x = float(self.X_box.text()), y = float(self.Y_box.text()), SE = self.SE, Vel = self.Vel)
+
         Im = QPixmap(fn+'_WSE.png')
         Im = Im.scaled(200*15/4,200, transformMode = Qt.SmoothTransformation)
+        self.Graph1.clear()
         self.Graph1.setPixmap(Im)
+
         Im = QPixmap(fn+'_Vel.png')
         Im = Im.scaled(200*15/4,200, transformMode = Qt.SmoothTransformation)
+        self.Graph2.clear()
         self.Graph2.setPixmap(Im)
 
+        vars = globals()
+        for var in vars:
+            if sys.getsizeof(var) > 100:
+                print(var+':')
+                print(sys.getsizeof(var))
+                print('----------')
 
 
 

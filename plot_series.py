@@ -2,7 +2,7 @@ import numpy as np
 from getNeigh import getNeighbor
 import matplotlib.pyplot as plt
 
-def plotT2Series(fn, x, y, plot_fn = 'support_files/plot_series', start_date = np.datetime64('2015-01-01T00:00:00')):
+def plotT2Series(T, XY, x, y, SE, Vel, plot_fn = 'support_files/plot_series', ):
     """
     Function to plot a time series from a Telemac 2D Output file
     ! important note: the resulting plot is not an interpolation but the info from the closest node!
@@ -17,29 +17,8 @@ def plotT2Series(fn, x, y, plot_fn = 'support_files/plot_series', start_date = n
 
     """
 
-    data = np.load(fn + '_data.npy')
-    t = np.load(fn + '_t.npy')
-    X = np.load(fn + '_x.npy')
-    Y = np.load(fn + '_y.npy')
-
-    # get properties
-    U = data[0]
-    V = data[1]
-    H = data[2]
-    B = data[3]
-
-    Vel = np.sqrt(U**2+V**2)
-    SE = B + H
-
-    XY = np.empty([np.shape(X)[0], 2])
-    XY[:,0], XY[:,1] = X, Y
-
-    # time series
-    T = np.array([start_date], dtype = np.datetime64)
-    for i in range(np.shape(t)[0]):
-        td = np.timedelta64(int(t[i]),'s')
-        T = np.append(T,start_date + td)
-    T = T[1:]
+    X = XY[:,0]
+    Y = XY[:,1]
 
     # find the closest node to the requested lat and lon
     neighxy= getNeighbor([x, y], XY, return_index = False)
