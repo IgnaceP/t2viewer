@@ -21,14 +21,30 @@ import os
 import math
 from shutil import copyfile
 import pickle
+import time
 import gc
 
 from load_mesh import *
 from paint import Paint
 from plot_series import *
+from plot_a_video import *
 
 os.chdir('/home/ignace/Custom_Libraries/t2viewer/')
 #%%
+
+
+class MyThread99(QThread):
+    _signal = pyqtSignal(int)
+    def __init__(self):
+        super(Thread, self).__init__()
+
+    def __del__(self):
+        self.wait()
+
+    def run(self):
+        for i in range(100):
+            time.sleep(0.1)
+            self._signal.emit(i)
 
 class Main(QMainWindow):
 # create a class with heritance from the QWidget object
@@ -73,6 +89,8 @@ class Main(QMainWindow):
 
 class MyTableWidget(QWidget):
 
+    sig = pyqtSignal(str)
+
     def __init__(self, parent):
         super(QWidget, self).__init__(parent)
 
@@ -85,7 +103,7 @@ class MyTableWidget(QWidget):
         Frame.setFixedSize(700,700)
 
         # Push button to load telemac 2d output
-        Load = QPushButton('Load Selafin file')
+        Load = QPushButton('Load .slf or .npy')
         Load.clicked.connect(self.openFileNameDialog)
         Load.setToolTip('Load the output from a TELEMAC 2D simulation')
         Load.setStyleSheet("""
@@ -137,6 +155,7 @@ class MyTableWidget(QWidget):
             color: rgb(180,180,180);
             background-color: rgb(35, 35, 35);
             max-height: 30px;
+            min-width: 160px;
             }
         """)
         self.Y_box = QLabel(' ')
@@ -145,8 +164,38 @@ class MyTableWidget(QWidget):
             color: rgb(180,180,180);
             background-color: rgb(35, 35, 35);
             max-height: 30px;
+            min-width: 160px;
             }
         """)
+
+        # date and time
+        start_time = QLabel('Start Date & Time:')
+        start_time.setAlignment(Qt.AlignRight)
+        start_time.setStyleSheet("""
+            QLabel {
+            color: rgb(180,180,180);
+            background-color: rgb(35, 35, 35);
+            }""")
+        end_time = QLabel('End Date & Time:')
+        end_time.setAlignment(Qt.AlignRight)
+        end_time.setStyleSheet("""
+            QLabel {
+            color: rgb(180,180,180);
+            background-color: rgb(35, 35, 35);
+            }""")
+
+        self.start_time = QLineEdit()
+        self.start_time.setStyleSheet("""
+        QLineEdit {
+        color: rgb(180,180,180);
+        background-color: rgb(25,25,25);
+        }""")
+        self.end_time = QLineEdit()
+        self.end_time.setStyleSheet("""
+        QLineEdit {
+        color: rgb(180,180,180);
+        background-color: rgb(25,25,25);
+        }""")
 
         # Qlabel to paint the selected loc
         self.Painter = Paint(self.X_box, self.Y_box)
@@ -157,6 +206,24 @@ class MyTableWidget(QWidget):
         Plot.clicked.connect(self.plotTimeSeries)
         Plot.setToolTip('Plot time series of surface elevation at selected area.')
         Plot.setStyleSheet("""
+        QPushButton {
+            border-width: 25px solid white;
+            border-radius: 5px;
+            color: rgb(180,180,180);
+            background-color: rgb(55, 55, 60);
+            min-height: 40px;
+            }
+        QPushButton:pressed {
+            color: rgb(120,120,120);
+            background-color: rgb(75, 75, 80);
+            }
+        """)
+
+        # Push button to load telemac 2d output
+        Video = QPushButton('Generate a video')
+        Video.clicked.connect(self.plotVideo)
+        Video.setToolTip('Generate a video of the water surface elevation over time.')
+        Video.setStyleSheet("""
         QPushButton {
             border-width: 25px solid white;
             border-radius: 5px;
@@ -195,16 +262,22 @@ class MyTableWidget(QWidget):
         self.grid.addWidget(self.Mesh, 0, 0, 10, 1)
 
         self.grid.addWidget(Load,0,1,1,1)
-        self.grid.addWidget(self.Path_label, 0,2,1,1)
+        self.grid.addWidget(self.Path_label, 0,2,1,3)
 
         self.grid.addWidget(X_label, 1,1,1,1)
         self.grid.addWidget(Y_label, 2,1,1,1)
         self.grid.addWidget(self.X_box, 1,2,1,1)
         self.grid.addWidget(self.Y_box, 2,2,1,1)
 
+        self.grid.addWidget(start_time, 1, 3)
+        self.grid.addWidget(end_time, 2, 3)
+        self.grid.addWidget(self.start_time, 1, 4)
+        self.grid.addWidget(self.end_time, 2, 4)
+
         self.grid.addWidget(Plot, 3,1,1,2)
-        self.grid.addWidget(self.Graph1,4,1,3,2)
-        self.grid.addWidget(self.Graph2,7,1,3,2)
+        self.grid.addWidget(Video, 3,3,1,2)
+        self.grid.addWidget(self.Graph1,4,1,3,4)
+        self.grid.addWidget(self.Graph2,7,1,3,4)
 
         self.setLayout(self.grid)
 
@@ -218,10 +291,12 @@ class MyTableWidget(QWidget):
 
     def openFileNameDialog(self):
         options = QFileDialog.Options()
-        self.fileName, self.cancel = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","Selafin Files (*.slf)", options=options)
-        self.loadMesh()
+        self.fileName, self.cancel = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","Numpy files (*.npy);; Selafin Files (*.slf)", options=options)
+        self.Path_label.setText('Loading...')
+        print('Loading file...')
+        time.sleep(1)
         try:
-
+            self.loadMesh()
             self.Path_label.setText(self.fileName.split('/')[-1])
 
         except:
@@ -249,7 +324,11 @@ class MyTableWidget(QWidget):
         self.loadArrays()
 
     def loadArrays(self):
-        fn = './previously_loaded_meshes/'+self.fileName.split('/')[-1].split('.')[0]
+        fn = str('./previously_loaded_meshes/'+self.fileName.split('/')[-1])
+        fn = fn.split('_')[:-1]
+        fn = '_'.join(fn)
+
+        self.fn = fn
 
         data = np.load(fn + '_data.npy')
         t = np.load(fn + '_t.npy')
@@ -276,9 +355,19 @@ class MyTableWidget(QWidget):
             T = np.append(T,start_date + td)
         self.T = T[1:]
 
+        start_t = str(self.T[0])
+        self.start_time.setText(start_t)
+
+        end_t = str(self.T[-1])
+        self.end_time.setText(end_t)
+
     def plotTimeSeries(self):
+        start_time = np.datetime64(self.start_time.text())
+        end_time = np.datetime64(self.end_time.text())
+
         fn = './previously_loaded_meshes/'+self.fileName.split('/')[-1].split('.')[0]
-        fn = plotT2Series(T = self.T, XY = self.XY, x = float(self.X_box.text()), y = float(self.Y_box.text()), SE = self.SE, Vel = self.Vel)
+        fn = plotT2Series(T = self.T, XY = self.XY, x = float(self.X_box.text()), y = float(self.Y_box.text()),
+                    SE = self.SE, Vel = self.Vel, t0 = start_time, t1 = end_time)
 
         Im = QPixmap(fn+'_WSE.png')
         Im = Im.scaled(200*15/4,200, transformMode = Qt.SmoothTransformation)
@@ -296,6 +385,16 @@ class MyTableWidget(QWidget):
                 print(var+':')
                 print(sys.getsizeof(var))
                 print('----------')
+
+    def plotVideo(self):
+        self.thread = MyThread()
+        self.sig.connect(self.thread.on_source)
+        self.sig.emit(self.fn)
+        self.thread.start()
+        self.thread.sig1.connect(self.on_info)
+
+    def on_info(self, info):
+        self.Path_label.setText(str(info))
 
 
 
