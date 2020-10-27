@@ -2,7 +2,7 @@ import numpy as np
 from getNeigh import getNeighbor
 import matplotlib.pyplot as plt
 
-def plotT2Series(T, XY, x, y, SE, Vel, plot_fn = 'support_files/plot_series', ):
+def plotT2Series(T, XY, x, y, SE, Vel, t0, t1, plot_fn = 'support_files/plot_series'):
     """
     Function to plot a time series from a Telemac 2D Output file
     ! important note: the resulting plot is not an interpolation but the info from the closest node!
@@ -26,12 +26,21 @@ def plotT2Series(T, XY, x, y, SE, Vel, plot_fn = 'support_files/plot_series', ):
     rx = np.where(X == x_node)
     ry = np.where(Y == y_node)
     i = np.intersect1d(rx,ry)[0]
-    print('Distance between POI and node: ',((x_node - x)**2 + (y_node - y)**2)**0.5)
-    SEseries = SE[i,:]
-    Velseries = Vel[i,:]
+
+    SEseries = np.array(SE[i,:])
+    Velseries = np.array(Vel[i,:])
+
+    mask = (T>t0)*(T<t1)
+    SEmin = np.min(SEseries[mask])
+    SEmax = np.max(SEseries[mask])
+    SErange = SEmax - SEmin
+    Velmin = np.min(Velseries[mask])
+    Velmax = np.max(Velseries[mask])
+    Velrange = Velmax - -Velmin
+
 
     f, a = plt.subplots(figsize = (15,4))
-    a.plot(T, SEseries)
+    a.plot(T, SEseries,'.-', color = (1, 128/255, 0))
     a.grid('on')
     a.set_ylabel('Water Surface Elevation [m]', fontweight = 'bold', fontsize = 14)
     a.spines['bottom'].set_color('white')
@@ -42,10 +51,12 @@ def plotT2Series(T, XY, x, y, SE, Vel, plot_fn = 'support_files/plot_series', ):
     a.tick_params(axis='y', colors='white')
     a.xaxis.label.set_color('white')
     a.yaxis.label.set_color('white')
+    a.set_xlim(t0,t1)
+    a.set_ylim(SEmin - 0.1*SErange, SEmax + 0.1*SErange)
     f.savefig(plot_fn+'_WSE.png', bbox_inches = 'tight', transparent = True)
 
     f, a = plt.subplots(figsize = (15,4))
-    a.plot(T, Velseries)
+    a.plot(T, Velseries,'.-', color = (1, 128/255, 0))
     a.grid('on')
     a.set_ylabel('Velocity [m/s]', fontweight = 'bold', fontsize = 14)
     a.spines['bottom'].set_color('white')
@@ -56,6 +67,8 @@ def plotT2Series(T, XY, x, y, SE, Vel, plot_fn = 'support_files/plot_series', ):
     a.tick_params(axis='y', colors='white')
     a.xaxis.label.set_color('white')
     a.yaxis.label.set_color('white')
+    a.set_xlim(t0,t1)
+    a.set_ylim(Velmin - 0.1*Velrange, Velmax + 0.1*Velrange)
     f.savefig(plot_fn+'_Vel.png', bbox_inches = 'tight', transparent = True)
 
-    return plot_fn
+    return plot_fn, neighxy, i
