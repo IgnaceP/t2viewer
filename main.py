@@ -33,6 +33,7 @@ import random
 from load_mesh import *
 from plot_series import *
 from plot_a_video import *
+from dialogs import *
 
 
 os.chdir('/home/ignace/Custom_Libraries/t2viewer/')
@@ -89,15 +90,13 @@ class MyTableWidget(QWidget):
     def __init__(self, parent):
         super(QWidget, self).__init__(parent)
 
-        #---------------------------------------------------#
+        #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
         #-------------- Make the input widges --------------#
-        #---------------------------------------------------#
+        #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-        # Qlabel to show the mesh in
-        self.figure = plt.figure()
-        self.figure.set_facecolor((45/255, 45/255, 45/255))
-        self.canvas = FigureCanvas(self.figure)
-        self.canvas.setFixedSize(700,700)
+        # ------------------------#
+        # Main buttons ans inputs #
+        # ------------------------#
 
         # Push button to load telemac 2d output
         Load = QPushButton('Load .slf or .npy')
@@ -195,10 +194,11 @@ class MyTableWidget(QWidget):
         }""")
 
         # Push button to load telemac 2d output
-        Plot = QPushButton('Plot water level series')
-        Plot.clicked.connect(self.plotTimeSeries)
-        Plot.setToolTip('Plot time series of surface elevation at selected area.')
-        Plot.setStyleSheet("""
+        self.PlotSeries = QPushButton('Plot Series')
+        self.PlotSeries.setDisabled(True)
+        self.PlotSeries.clicked.connect(self.plotTimeSeries)
+        self.PlotSeries.setToolTip('Plot time series of surface elevation at selected area.')
+        self.PlotSeries.setStyleSheet("""
         QPushButton {
             border-width: 25px solid white;
             border-radius: 5px;
@@ -209,14 +209,19 @@ class MyTableWidget(QWidget):
         QPushButton:pressed {
             color: rgb(120,120,120);
             background-color: rgb(75, 75, 80);
+            }
+        QPushButton:disabled {
+            color: rgb(50,50,50);
+            background-color: rgb(25, 25, 25);
             }
         """)
 
         # Push button to load telemac 2d output
-        Video = QPushButton('Generate a video')
-        Video.clicked.connect(self.plotVideo)
-        Video.setToolTip('Generate a video of the water surface elevation over time.')
-        Video.setStyleSheet("""
+        self.Video = QPushButton('Generate a video')
+        self.Video.setDisabled(True)
+        self.Video.clicked.connect(self.plotVideo)
+        self.Video.setToolTip('Generate a video of the water surface elevation over time.')
+        self.Video.setStyleSheet("""
         QPushButton {
             border-width: 25px solid white;
             border-radius: 5px;
@@ -228,12 +233,61 @@ class MyTableWidget(QWidget):
             color: rgb(120,120,120);
             background-color: rgb(75, 75, 80);
             }
+        QPushButton:disabled {
+            color: rgb(50,50,50);
+            background-color: rgb(25, 25, 25);
+            }
         """)
 
+        # Push button to plot a variable along the mesh
+        self.PlotMesh = QPushButton('Plot mesh')
+        self.PlotMesh.setDisabled(True)
+        self.PlotMesh.clicked.connect(self.plotMeshVar)
+        self.PlotMesh.setToolTip('Generate a map with a given variable.')
+        self.PlotMesh.setStyleSheet("""
+        QPushButton {
+            border-width: 25px solid white;
+            border-radius: 5px;
+            color: rgb(180,180,180);
+            background-color: rgb(55, 55, 60);
+            min-height: 40px;
+            }
+        QPushButton:pressed {
+            color: rgb(120,120,120);
+            background-color: rgb(75, 75, 80);
+            }
+        QPushButton:disabled {
+            color: rgb(50,50,50);
+            background-color: rgb(25, 25, 25);
+            }
+        """)
+
+        self.LoadPrevious = QCheckBox('Ignore previously saved meshes')
+        self.LoadPrevious.setChecked(True)
+        self.LoadPrevious.setStyleSheet("""
+        QCheckBox {
+         color: rgb(120,120,120);
+         background-color: rgb(35,35,35);
+        }
+        """)
+
+        # ------------#
+        # Time Series #
+        # ------------#
 
         # Qlabel to load graph into
         self.Graph1 = QLabel()
         self.Graph2 = QLabel()
+
+        # ----------------------#
+        # Main window with mesh #
+        # ----------------------#
+
+        # Qlabel to show the mesh in
+        self.figure = plt.figure()
+        self.figure.set_facecolor((45/255, 45/255, 45/255))
+        self.canvas = FigureCanvas(self.figure)
+        self.canvas.setFixedSize(700,700)
 
         # buttons to zoom and pan
         self.zoombut = QPushButton()
@@ -255,7 +309,6 @@ class MyTableWidget(QWidget):
             background-color: rgb(255, 128, 0);
             }
         """)
-
 
         self.panbut = QPushButton()
         self.panbut.setCheckable(True)
@@ -333,15 +386,10 @@ class MyTableWidget(QWidget):
         """)
 
 
-        #------------------------------------------------------#
-        #-------------- Connect the input widges --------------#
-        #------------------------------------------------------#
 
-        #self.Find.clicked.connect(self.FindLocation)
-
-        #---------------------------------------------------------#
+        #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
         #-------------- Organize and set the layout --------------#
-        #---------------------------------------------------------#
+        #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
         self.grid = QGridLayout()
         self.grid.setSpacing(10)
@@ -368,15 +416,17 @@ class MyTableWidget(QWidget):
         self.grid.addWidget(self.start_time, 1, 14)
         self.grid.addWidget(self.end_time, 2, 14)
 
-        self.grid.addWidget(Plot, 3,11,1,2)
-        self.grid.addWidget(Video, 3,13,1,2)
+        self.grid.addWidget(self.PlotSeries, 3, 11, 1, 1)
+        self.grid.addWidget(self.Video, 3, 12, 1, 1)
+        self.grid.addWidget(self.PlotMesh,3, 13, 1, 1)
+        self.grid.addWidget(self.LoadPrevious, 3, 14, 1, 1)
+
         self.grid.addWidget(self.Graph1,4,11,3,4)
         self.grid.addWidget(self.Graph2,7,11,3,4)
 
         self.setLayout(self.grid)
 
         self.show()
-
 
         #-------------------------------------#
         #-------------- Methods --------------#
@@ -399,13 +449,21 @@ class MyTableWidget(QWidget):
 
     def loadMesh(self):
 
-        fn, self.ax = loadMeshFromSLF(self.fileName, self.figure, self.canvas, ignore_previously_saved_files = True)
+        if self.LoadPrevious.isChecked(): ignore_previously_saved_files = True
+        else : ignore_previously_saved_files = False
+
+        fn, self.ax = loadMeshFromSLF(self.fileName, self.figure, self.canvas, ignore_previously_saved_files = ignore_previously_saved_files)
         self.loadArrays()
 
         self.zoombut.setEnabled(True)
         self.panbut.setEnabled(True)
         self.locbut.setEnabled(True)
         self.homebut.setEnabled(True)
+
+        self.Video.setEnabled(True)
+        self.PlotSeries.setEnabled(True)
+        self.PlotMesh.setEnabled(True)
+
 
     def loadArrays(self):
         fn = str('./previously_loaded_meshes/'+self.fileName.split('/')[-1])
@@ -418,6 +476,8 @@ class MyTableWidget(QWidget):
         t = np.load(fn + '_t.npy')
         X = np.load(fn + '_x.npy')
         Y = np.load(fn + '_y.npy')
+        self.ikle = np.load(fn + '_ikle.npy')
+        self.times = np.load(fn + '_times.npy')
 
         # get properties
         U = data[0]
@@ -426,10 +486,15 @@ class MyTableWidget(QWidget):
         B = data[3]
         N = data[4]
 
+        self.U = U
+        self.V = V
         self.Vel = np.sqrt(U**2+V**2)
+        self.H = H
         self.SE = H+B
         self.B = B
         self.N = N
+        self.X = X
+        self.Y = Y
 
         self.XY = np.empty([np.shape(X)[0], 2])
         self.XY[:,0], self.XY[:,1] = X, Y
@@ -565,6 +630,29 @@ class MyTableWidget(QWidget):
             except: pass
             self.scat1 = self.ax.scatter(event.xdata, event.ydata, s = 25, color = (1, 128/255, 0), zorder = 1e9)
             self.canvas.draw()
+
+    def plotMeshVar(self):
+
+        dlg = PlotMeshVarDialog(None)
+        dlg.var.addItems(['u (m/s)', 'v (m/s)','water depth (m)','water surface (m)'])
+        dlg.time.setRange(0, len(self.times)-1)
+        dlg.time.setValue(len(self.times)-1)
+        dlg.exec_( )
+
+        if dlg.variable == 1: var = self.U[:,dlg.t]; label_str = 'U [m/s]'
+        if dlg.variable == 2: var = self.V[:,dlg.t]; label_str = 'V [m/s]'
+        if dlg.variable == 3: var = self.H[:,dlg.t]; label_str = 'Water Depth [m]'
+        if dlg.variable == 4: var = self.SE[:,dlg.t]; label_str = 'Water Surface Elevation [m]'
+
+        if dlg.variable != None:
+            options = QFileDialog.Options()
+            fn, _ = QFileDialog.getSaveFileName(self,"QFileDialog.getSaveFileName()","","All Files (*);;Text Files (*.txt)", options=options)
+
+            if fn:
+                if fn[-4:] != '.png': fn += '.png'
+                plotVarMesh(self.X, self.Y, self.ikle, var, fn, label_str, min = float(dlg.min.text()), max = float(dlg.max.text()))
+
+
 
 
 

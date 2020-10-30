@@ -1,6 +1,8 @@
 import numpy as np
 from getNeigh import getNeighbor
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+import os
 
 def plotT2Series(T, XY, x, y, SE, Vel, t0, t1, plot_fn = 'support_files/plot_series'):
     """
@@ -72,3 +74,30 @@ def plotT2Series(T, XY, x, y, SE, Vel, t0, t1, plot_fn = 'support_files/plot_ser
     f.savefig(plot_fn+'_Vel.png', bbox_inches = 'tight', transparent = True)
 
     return plot_fn, neighxy, i
+
+def plotVarMesh(x,y,ikle,var, path, label_str, min = 0, max = 1e9):
+
+    # ------------------------------------------------------------------------------ #
+    # Plot the Mesh
+
+    xmin, xmax = np.min(x),np.max(x)
+    ymin, ymax = np.min(y),np.max(y)
+
+    fig, ax = plt.subplots(figsize = (12,12))
+    plt.tight_layout()
+    ax.cla()
+    tc = ax.tripcolor(x, y, ikle-1, var, vmin = min, vmax = max, cmap = 'gist_earth')
+    #tc.set_edgecolors('white')
+    ax.axis('off')
+    ax.margins(2)
+    ax.set_xlim(xmin - 0.05*(xmax - xmin), xmax + 0.05*(xmax - xmin))
+    ax.set_ylim(ymin - 0.05*(ymax - ymin), ymax + 0.05*(ymax - ymin))
+    ax.set_aspect('equal')
+
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("bottom", size="5%", pad=0.05)
+    cb = fig.colorbar(tc, orientation = 'horizontal', cax = cax)
+    cb.ax.set_title(label_str,size = 14)
+
+    fig.savefig(path)
+    os.system('nomacs %s' % path)
