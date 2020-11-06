@@ -38,7 +38,7 @@ def loadMeshFromSLF(output_fn, figure, canvas, ignore_previously_saved_files = F
             np.save(fn_box, np.array([xmin -0.05*xrange, xmax +0.05*xrange, ymin-0.05*yrange, ymax+0.05*yrange]))
 
             print('Saving time steps...')
-            np.save('./previously_loaded_meshes/%s_t.npy' % name, slf.times)
+            np.save('./previously_loaded_meshes/%s_times.npy' % name, slf.times)
             print('Saving data numpy array...')
             np.save('./previously_loaded_meshes/%s_data.npy' % name, data)
             print('Saving x and y...')
@@ -56,7 +56,6 @@ def loadMeshFromSLF(output_fn, figure, canvas, ignore_previously_saved_files = F
 
         if not os.path.isfile(fn_box) or ignore_previously_saved_files:
 
-            copyfile(fn +'t.npy', './previously_loaded_meshes/%s_t.npy' % name)
             copyfile(fn +'x.npy', './previously_loaded_meshes/%s_x.npy' % name)
             copyfile(fn +'y.npy', './previously_loaded_meshes/%s_y.npy' % name)
             copyfile(fn +'data.npy', './previously_loaded_meshes/%s_data.npy' % name)

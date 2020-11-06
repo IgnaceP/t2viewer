@@ -511,14 +511,10 @@ class MyTableWidget(QWidget):
 
 
     def loadArrays(self):
-        fn = str('./previously_loaded_meshes/'+self.fileName.split('/')[-1])
-        fn = fn.split('_')[:-1]
-        fn = '_'.join(fn)
-
+        fn = str('./previously_loaded_meshes/'+self.name)
         self.fn = fn
 
         data = np.load(fn + '_data.npy')
-        t = np.load(fn + '_t.npy')
         X = np.load(fn + '_x.npy')
         Y = np.load(fn + '_y.npy')
         self.ikle = np.load(fn + '_ikle.npy')
@@ -547,8 +543,8 @@ class MyTableWidget(QWidget):
         # time series
         start_date = np.datetime64('2015-01-01T00:00:00')
         T = np.array([start_date], dtype = np.datetime64)
-        for i in range(np.shape(t)[0]):
-            td = np.timedelta64(int(t[i]),'s')
+        for i in range(np.shape(self.times)[0]):
+            td = np.timedelta64(int(self.times[i]),'s')
             T = np.append(T,start_date + td)
         self.T = T[1:]
 
