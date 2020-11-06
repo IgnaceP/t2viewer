@@ -49,9 +49,9 @@ class Main(QMainWindow):
         # return the parent class from this child class and calls its constructor (constructor = special kind of method to initialize any instance variables (assigning attributes to it))
 
         title = "TELEMAC 2D Output Vizualization"
-        top = 50
-        left = 50
-        width = 1450
+        left = 2000
+        top = 100
+        width = 1750
         height = 600
 
         self.clickcount = 0
@@ -59,7 +59,7 @@ class Main(QMainWindow):
 
         self.setWindowTitle(title)
         self.setWindowIcon(QIcon('support_files/logo.png'))
-        self.setGeometry(top,left, width, height)
+        self.setGeometry(left,top,width, height)
 
         self.main_widget = MyTableWidget(self)
         self.setCentralWidget(self.main_widget)
@@ -79,6 +79,8 @@ class Main(QMainWindow):
         self.show()
 
     def keyPressEvent(self, event):
+        if self.main_widget.RemovePrevious.isChecked():
+            os.system('rm previously_loaded_meshes/*')
         if event.key() == Qt.Key_Escape:
             self.close()
 
@@ -166,14 +168,14 @@ class MyTableWidget(QWidget):
 
         # date and time
         start_time = QLabel('Start Date & Time:')
-        start_time.setAlignment(Qt.AlignRight)
+        start_time.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         start_time.setStyleSheet("""
             QLabel {
             color: rgb(180,180,180);
             background-color: rgb(35, 35, 35);
             }""")
         end_time = QLabel('End Date & Time:')
-        end_time.setAlignment(Qt.AlignRight)
+        end_time.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         end_time.setStyleSheet("""
             QLabel {
             color: rgb(180,180,180);
@@ -240,7 +242,7 @@ class MyTableWidget(QWidget):
         """)
 
         # Push button to plot a variable along the mesh
-        self.PlotMesh = QPushButton('Plot mesh')
+        self.PlotMesh = QPushButton('Plot variable on mesh')
         self.PlotMesh.setDisabled(True)
         self.PlotMesh.clicked.connect(self.plotMeshVar)
         self.PlotMesh.setToolTip('Generate a map with a given variable.')
@@ -262,9 +264,46 @@ class MyTableWidget(QWidget):
             }
         """)
 
+        # Push button to reload general mesh view
+        self.ReloadMesh = QPushButton('Reload mesh view')
+        self.ReloadMesh.setDisabled(True)
+        self.ReloadMesh.clicked.connect(self.reloadMesh)
+        self.ReloadMesh.setToolTip('Reload the general mesh view.')
+        self.ReloadMesh.setStyleSheet("""
+        QPushButton {
+            border-width: 25px solid white;
+            border-radius: 5px;
+            color: rgb(180,180,180);
+            background-color: rgb(55, 55, 60);
+            min-height: 40px;
+            }
+        QPushButton:pressed {
+            color: rgb(120,120,120);
+            background-color: rgb(75, 75, 80);
+            }
+        QPushButton:disabled {
+            color: rgb(50,50,50);
+            background-color: rgb(25, 25, 25);
+            }
+        """)
+
+
+
+
         self.LoadPrevious = QCheckBox('Ignore previously saved meshes')
         self.LoadPrevious.setChecked(True)
+        self.LoadPrevious.setToolTip('Ignore existing files in previously_loaded_meshes and copy loaded files to this directory.')
         self.LoadPrevious.setStyleSheet("""
+        QCheckBox {
+         color: rgb(120,120,120);
+         background-color: rgb(35,35,35);
+        }
+        """)
+
+        self.RemovePrevious = QCheckBox('Clear previously saved meshes')
+        self.RemovePrevious.setChecked(True)
+        self.RemovePrevious.setToolTip('Clear all files tores in previously_loaded_meshes when closing.')
+        self.RemovePrevious.setStyleSheet("""
         QCheckBox {
          color: rgb(120,120,120);
          background-color: rgb(35,35,35);
@@ -382,6 +421,7 @@ class MyTableWidget(QWidget):
         QLabel {
             color: rgb(255,128,0);
             font-size: 8pt;
+            background-color: rgb(35, 35, 35);
             }
         """)
 
@@ -394,14 +434,13 @@ class MyTableWidget(QWidget):
         self.grid = QGridLayout()
         self.grid.setSpacing(10)
 
-        self.grid.addWidget(self.canvas, 0, 0, 10, 10)
-        self.grid.addWidget(self.zoombut, 9, 0)
-        self.grid.addWidget(self.panbut, 9, 1)
-        self.grid.addWidget(self.locbut, 9, 2)
-        self.grid.addWidget(self.homebut, 9, 3)
+        self.grid.addWidget(self.canvas, 0, 0, 9, 10)
+        self.grid.addWidget(self.zoombut, 9, 0, 1, 1)
+        self.grid.addWidget(self.panbut, 9, 1, 1, 1)
+        self.grid.addWidget(self.locbut, 9, 2, 1, 1)
+        self.grid.addWidget(self.homebut, 9, 3, 1, 1)
 
         self.grid.addWidget(self.Bath_label, 9, 4)
-
 
         self.grid.addWidget(Load,0,11,1,1)
         self.grid.addWidget(self.Path_label, 0,12,1,3)
@@ -416,13 +455,19 @@ class MyTableWidget(QWidget):
         self.grid.addWidget(self.start_time, 1, 14)
         self.grid.addWidget(self.end_time, 2, 14)
 
-        self.grid.addWidget(self.PlotSeries, 3, 11, 1, 1)
-        self.grid.addWidget(self.Video, 3, 12, 1, 1)
-        self.grid.addWidget(self.PlotMesh,3, 13, 1, 1)
-        self.grid.addWidget(self.LoadPrevious, 3, 14, 1, 1)
+        self.box_buttons = QVBoxLayout()
+        self.box_buttons.addWidget(self.PlotSeries)
+        self.box_buttons.addWidget(self.Video)
+        self.box_buttons.addWidget(self.PlotMesh)
+        self.box_buttons.addWidget(self.ReloadMesh)
+        self.box_buttons.addWidget(self.LoadPrevious)
+        self.box_buttons.addWidget(self.RemovePrevious)
+        self.box_buttons.addStretch()
 
-        self.grid.addWidget(self.Graph1,4,11,3,4)
-        self.grid.addWidget(self.Graph2,7,11,3,4)
+        self.grid.addLayout(self.box_buttons, 0, 15, 10, 1)
+
+        self.grid.addWidget(self.Graph1,3,11,3,4)
+        self.grid.addWidget(self.Graph2,6,11,3,4)
 
         self.setLayout(self.grid)
 
@@ -438,7 +483,6 @@ class MyTableWidget(QWidget):
         self.fileName, self.cancel = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","Numpy files (*.npy);; Selafin Files (*.slf)", options=options)
         print('Loading file...')
 
-        self.loadMesh()
         try:
             self.loadMesh()
             self.Path_label.setText(self.fileName.split('/')[-1])
@@ -452,7 +496,8 @@ class MyTableWidget(QWidget):
         if self.LoadPrevious.isChecked(): ignore_previously_saved_files = True
         else : ignore_previously_saved_files = False
 
-        fn, self.ax = loadMeshFromSLF(self.fileName, self.figure, self.canvas, ignore_previously_saved_files = ignore_previously_saved_files)
+        self.name, self.ax = loadMeshFromSLF(self.fileName, self.figure, self.canvas, ignore_previously_saved_files = ignore_previously_saved_files)
+        self.canvas.draw()
         self.loadArrays()
 
         self.zoombut.setEnabled(True)
@@ -634,23 +679,50 @@ class MyTableWidget(QWidget):
     def plotMeshVar(self):
 
         dlg = PlotMeshVarDialog(None)
-        dlg.var.addItems(['u (m/s)', 'v (m/s)','water depth (m)','water surface (m)'])
+        dlg.var.addItems(['u (m/s)', 'v (m/s)','water depth (m)','water surface (m)','Bathymetry (m)', 'Friction Coefficient'])
         dlg.time.setRange(0, len(self.times)-1)
         dlg.time.setValue(len(self.times)-1)
+
         dlg.exec_( )
 
         if dlg.variable == 1: var = self.U[:,dlg.t]; label_str = 'U [m/s]'
         if dlg.variable == 2: var = self.V[:,dlg.t]; label_str = 'V [m/s]'
         if dlg.variable == 3: var = self.H[:,dlg.t]; label_str = 'Water Depth [m]'
         if dlg.variable == 4: var = self.SE[:,dlg.t]; label_str = 'Water Surface Elevation [m]'
+        if dlg.variable == 5: var = self.B[:,dlg.t]; label_str = 'Bathymetry [m]'
+        if dlg.variable == 6: var = self.N[:,dlg.t]; label_str = "Manning's n"
 
         if dlg.variable != None:
+
+            if len(dlg.min.text()) == 0 or len(dlg.max.text()) == 0: varmin, varmax = np.min(var),np.max(var)
+            else: varmin, varmax = float(dlg.min.text()),float(dlg.max.text())
+
+            #self.ax.clear()
+            self.figure.clf()
+            self.ax = self.figure.add_subplot(111)
+            plotVarMesh(self.X, self.Y, self.ikle, var, label_str, min = varmin, max = varmax, ax = self.ax, fig = self.figure)
+            self.canvas.draw()
+
+            """
             options = QFileDialog.Options()
             fn, _ = QFileDialog.getSaveFileName(self,"QFileDialog.getSaveFileName()","","All Files (*);;Text Files (*.txt)", options=options)
 
+try:
+    self.figure.cb.clear()
             if fn:
                 if fn[-4:] != '.png': fn += '.png'
-                plotVarMesh(self.X, self.Y, self.ikle, var, fn, label_str, min = float(dlg.min.text()), max = float(dlg.max.text()))
+                self.ax.clear()
+                plotVarMesh(self.X, self.Y, self.ikle, var, fn, label_str, min = float(dlg.min.text()), max = float(dlg.max.text()), ax = self.ax, fig = self.figure)
+                self.canvas.draw()
+            """
+
+            self.ReloadMesh.setDisabled(False)
+
+    def reloadMesh(self):
+        self.ax.clear()
+        self.ax = plotMesh(self.name, self.figure)
+        self.canvas.draw()
+        self.ReloadMesh.setDisabled(True)
 
 
 

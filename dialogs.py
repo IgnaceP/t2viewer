@@ -15,6 +15,8 @@ class PlotMeshVarDialog(QDialog):
             }
         """)
 
+        self.variable = 0
+
         self.createWidgets()
         self.setStyleSheets()
         self.setGridLayout()
@@ -110,7 +112,7 @@ class PlotMeshVarDialog(QDialog):
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Escape:
-            self.close()
+            self.cancelPlot()
 
     def cancelPlot(self):
         self.variable = None
@@ -119,6 +121,8 @@ class PlotMeshVarDialog(QDialog):
 
     def continuePlot(self):
         self.variable = self.var.currentIndex()
-        self.t = self.time.value()
-        print(self.t)
-        self.close()
+        if self.variable == 0:
+            self.cancelPlot()
+        else:
+            self.t = self.time.value()
+            self.close()

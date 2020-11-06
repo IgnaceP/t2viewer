@@ -54,8 +54,11 @@ def plotT2Series(T, XY, x, y, SE, Vel, t0, t1, plot_fn = 'support_files/plot_ser
     a.xaxis.label.set_color('white')
     a.yaxis.label.set_color('white')
     a.set_xlim(t0,t1)
-    a.set_ylim(SEmin - 0.1*SErange, SEmax + 0.1*SErange)
+    a.set_ylim(max(-999,SEmin - 0.1*SErange), min(999,SEmax + 0.1*SErange))
     f.savefig(plot_fn+'_WSE.png', bbox_inches = 'tight', transparent = True)
+
+    f.clear()
+    del f
 
     f, a = plt.subplots(figsize = (15,4))
     a.plot(T, Velseries,'.-', color = (1, 128/255, 0))
@@ -70,12 +73,15 @@ def plotT2Series(T, XY, x, y, SE, Vel, t0, t1, plot_fn = 'support_files/plot_ser
     a.xaxis.label.set_color('white')
     a.yaxis.label.set_color('white')
     a.set_xlim(t0,t1)
-    a.set_ylim(Velmin - 0.1*Velrange, Velmax + 0.1*Velrange)
+    a.set_ylim(max(-999,Velmin - 0.1*Velrange), min(999,Velmax + 0.1*Velrange))
     f.savefig(plot_fn+'_Vel.png', bbox_inches = 'tight', transparent = True)
+
+    f.clear()
+    del f
 
     return plot_fn, neighxy, i
 
-def plotVarMesh(x,y,ikle,var, path, label_str, min = 0, max = 1e9):
+def plotVarMesh(x,y,ikle,var, label_str, path = None, min = 0, max = 1e9, ax = None, fig = None):
 
     # ------------------------------------------------------------------------------ #
     # Plot the Mesh
@@ -83,7 +89,8 @@ def plotVarMesh(x,y,ikle,var, path, label_str, min = 0, max = 1e9):
     xmin, xmax = np.min(x),np.max(x)
     ymin, ymax = np.min(y),np.max(y)
 
-    fig, ax = plt.subplots(figsize = (12,12))
+    if ax == None:
+        fig, ax = plt.subplots(figsize = (12,12))
     plt.tight_layout()
     ax.cla()
     tc = ax.tripcolor(x, y, ikle-1, var, vmin = min, vmax = max, cmap = 'gist_earth')
@@ -97,7 +104,9 @@ def plotVarMesh(x,y,ikle,var, path, label_str, min = 0, max = 1e9):
     divider = make_axes_locatable(ax)
     cax = divider.append_axes("bottom", size="5%", pad=0.05)
     cb = fig.colorbar(tc, orientation = 'horizontal', cax = cax)
-    cb.ax.set_title(label_str,size = 14)
+    cb.ax.set_title(label_str,size = 10, color = 'white')
+    cb.ax.tick_params(labelsize=8, color = 'white', labelcolor = 'white')
 
-    fig.savefig(path)
-    os.system('nomacs %s' % path)
+    if path != None:
+        fig.savefig(path)
+        os.system('nomacs %s' % path)
