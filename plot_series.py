@@ -82,6 +82,12 @@ def plotT2Series(T, XY, x, y, SE, Vel, t0, t1, plot_fn = 'support_files/plot_ser
     return plot_fn, neighxy, i
 
 def exportSeries(fn, T, var, t0, t1, label = '', ylabel = ''):
+
+    mask = (T>t0)*(T<t1)
+    varmin = np.min(var[mask])
+    varmax = np.max(var[mask])
+    varrange = varmax - varmin
+
     f, a = plt.subplots(figsize = (15,4))
     a.plot(T, var,'.-', color = (1, 128/255, 0), label = label)
     if len(label) > 0:
@@ -89,7 +95,7 @@ def exportSeries(fn, T, var, t0, t1, label = '', ylabel = ''):
     a.grid('on')
     a.set_ylabel(ylabel, fontweight = 'bold', fontsize = 11)
     a.set_xlim(t0,t1)
-    a.set_ylim(max(-999,np.min(var)), min(999,np.max(var)))
+    a.set_ylim(max(-999,varmin - 0.1*varrange), min(999,varmax + 0.1*varrange))
     f.savefig(fn)
     f.clear()
     del f
