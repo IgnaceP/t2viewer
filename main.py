@@ -705,7 +705,7 @@ class MyTableWidget(QWidget):
         self.Bath_label.setText('Bath: ' + bath_str + " m\nManning's n: " + frict_str + '\nIndex: ' + i_str)
 
     def exportGraph1(self):
-        lab = 'x: %d, y: %d' % (slf.XY[self.i,0],slf.XY[self.i,1])
+        lab = 'x: %d, y: %d' % (self.XY[self.i,0],self.XY[self.i,1])
         fn, _ = QFileDialog.getSaveFileName(self,"QFileDialog.getSaveFileName()","","All Files (*);;PNG Files (*.png)", options=QFileDialog.Options())
         start_time = np.datetime64(self.start_time.text())
         end_time = np.datetime64(self.end_time.text())
@@ -714,7 +714,7 @@ class MyTableWidget(QWidget):
             exportSeries(fn, self.T, self.SE[self.i,:], start_time, end_time, label = lab, ylabel = 'Water Surface Elevation [m]')
 
     def exportGraph2(self):
-        lab = 'x: %d, y: %d' % (slf.XY[self.i,0],slf.XY[self.i,1])
+        lab = 'x: %d, y: %d' % (self.XY[self.i,0],self.XY[self.i,1])
         fn, _ = QFileDialog.getSaveFileName(self,"QFileDialog.getSaveFileName()","","All Files (*);;PNG Files (*.png)", options=QFileDialog.Options())
         start_time = np.datetime64(self.start_time.text())
         end_time = np.datetime64(self.end_time.text())
