@@ -92,6 +92,8 @@ class MyTableWidget(QWidget):
     def __init__(self, parent):
         super(QWidget, self).__init__(parent)
 
+        self.videosettingschanged = False
+
         #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
         #-------------- Make the input widges --------------#
         #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -241,6 +243,29 @@ class MyTableWidget(QWidget):
             }
         """)
 
+        # Push button to load telemac 2d output
+        self.VideoSettings = QPushButton('Video settings')
+        #self.VideoSettings.setDisabled(True)
+        self.VideoSettings.clicked.connect(self.setVideoSettings)
+        self.VideoSettings.setToolTip('Change the settings of the video export.')
+        self.VideoSettings.setStyleSheet("""
+        QPushButton {
+            border-width: 25px solid white;
+            border-radius: 5px;
+            color: rgb(180,180,180);
+            background-color: rgb(55, 55, 60);
+            min-height: 40px;
+            }
+        QPushButton:pressed {
+            color: rgb(120,120,120);
+            background-color: rgb(75, 75, 80);
+            }
+        QPushButton:disabled {
+            color: rgb(50,50,50);
+            background-color: rgb(25, 25, 25);
+            }
+        """)
+
         # Push button to plot a variable along the mesh
         self.PlotMesh = QPushButton('Plot variable on mesh')
         self.PlotMesh.setDisabled(True)
@@ -287,9 +312,6 @@ class MyTableWidget(QWidget):
             }
         """)
 
-
-
-
         self.LoadPrevious = QCheckBox('Ignore previously saved meshes')
         self.LoadPrevious.setChecked(True)
         self.LoadPrevious.setToolTip('Ignore existing files in previously_loaded_meshes and copy loaded files to this directory.')
@@ -317,6 +339,42 @@ class MyTableWidget(QWidget):
         # Qlabel to load graph into
         self.Graph1 = QLabel()
         self.Graph2 = QLabel()
+
+        self.ExportGraph1 = QPushButton()
+        im = QIcon('support_files/export.png')
+        self.ExportGraph1.setIcon(im)
+        self.ExportGraph1.setDisabled(True)
+        self.ExportGraph1.clicked.connect(self.exportGraph1)
+        self.ExportGraph1.setStyleSheet("""
+        QPushButton {
+            border-width: 25px solid white;
+            border-radius: 0px;
+            color: rgb(180,180,180);
+            background-color: rgb(55, 55, 60, 0);
+            }
+        QPushButton:pressed {
+            color: rgb(100,100,100,150);
+            background-color: rgb(25, 25, 25, 150);
+            }
+        """)
+
+        self.ExportGraph2 = QPushButton()
+        im = QIcon('support_files/export.png')
+        self.ExportGraph2.setIcon(im)
+        self.ExportGraph2.setDisabled(True)
+        self.ExportGraph2.clicked.connect(self.exportGraph2)
+        self.ExportGraph2.setStyleSheet("""
+        QPushButton {
+            border-width: 25px solid white;
+            border-radius: 0px;
+            color: rgb(180,180,180);
+            background-color: rgb(55, 55, 60, 0);
+            }
+        QPushButton:pressed {
+            color: rgb(100,100,100,150);
+            background-color: rgb(25, 25, 25, 150);
+            }
+        """)
 
         # ----------------------#
         # Main window with mesh #
@@ -391,6 +449,23 @@ class MyTableWidget(QWidget):
         self.canvas.mpl_connect("button_press_event", self.on_press)
         self.record_pressing_event = False
 
+        self.addcoor = QPushButton('xy')
+        self.addcoor.setEnabled(False)
+        self.addcoor.clicked.connect(self.addCoorToMap)
+        self.addcoor.setStyleSheet("""
+        QPushButton {
+            border-width: 25px solid white;
+            border-radius: 5px;
+            color: rgb(180,180,180);
+            background-color: rgb(55, 55, 60);
+            min-height: 40px;
+            }
+        QPushButton:pressed {
+            color: rgb(120,120,120);
+            background-color: rgb(75, 75, 80);
+            }
+        """)
+
         self.homebut = QPushButton()
         self.homebut.setEnabled(False)
         im = QIcon('support_files/home.png')
@@ -438,9 +513,10 @@ class MyTableWidget(QWidget):
         self.grid.addWidget(self.zoombut, 9, 0, 1, 1)
         self.grid.addWidget(self.panbut, 9, 1, 1, 1)
         self.grid.addWidget(self.locbut, 9, 2, 1, 1)
-        self.grid.addWidget(self.homebut, 9, 3, 1, 1)
+        self.grid.addWidget(self.addcoor, 9 , 3, 1, 1)
+        self.grid.addWidget(self.homebut, 9, 4, 1, 1)
 
-        self.grid.addWidget(self.Bath_label, 9, 4)
+        self.grid.addWidget(self.Bath_label, 9, 5)
 
         self.grid.addWidget(Load,0,11,1,1)
         self.grid.addWidget(self.Path_label, 0,12,1,3)
@@ -458,6 +534,7 @@ class MyTableWidget(QWidget):
         self.box_buttons = QVBoxLayout()
         self.box_buttons.addWidget(self.PlotSeries)
         self.box_buttons.addWidget(self.Video)
+        self.box_buttons.addWidget(self.VideoSettings)
         self.box_buttons.addWidget(self.PlotMesh)
         self.box_buttons.addWidget(self.ReloadMesh)
         self.box_buttons.addWidget(self.LoadPrevious)
@@ -468,6 +545,26 @@ class MyTableWidget(QWidget):
 
         self.grid.addWidget(self.Graph1,3,11,3,4)
         self.grid.addWidget(self.Graph2,6,11,3,4)
+        box1_export1 = QHBoxLayout()
+        box1_export1.addStretch()
+        box1_export1.addWidget(self.ExportGraph1)
+        box1_export1.addSpacing(7)
+        box2_export1 = QVBoxLayout()
+        box2_export1.addSpacing(7)
+        box2_export1.addLayout(box1_export1)
+        box2_export1.addStretch()
+        self.grid.addLayout(box2_export1,3,11,3,4)
+
+        box1_export2 = QHBoxLayout()
+        box1_export2.addStretch()
+        box1_export2.addWidget(self.ExportGraph2)
+        box1_export2.addSpacing(7)
+        box2_export2 = QVBoxLayout()
+        box2_export2.addSpacing(7)
+        box2_export2.addLayout(box1_export2)
+        box2_export2.addStretch()
+        self.grid.addLayout(box2_export2,6,11,3,4)
+
 
         self.setLayout(self.grid)
 
@@ -504,8 +601,10 @@ class MyTableWidget(QWidget):
         self.panbut.setEnabled(True)
         self.locbut.setEnabled(True)
         self.homebut.setEnabled(True)
+        self.addcoor.setEnabled(True)
 
         self.Video.setEnabled(True)
+        self.VideoSettings.setEnabled(True)
         self.PlotSeries.setEnabled(True)
         self.PlotMesh.setEnabled(True)
 
@@ -555,12 +654,16 @@ class MyTableWidget(QWidget):
         self.end_time.setText(end_t)
 
     def plotTimeSeries(self):
+        self.ExportGraph1.setEnabled(True)
+        self.ExportGraph2.setEnabled(True)
+
         start_time = np.datetime64(self.start_time.text())
         end_time = np.datetime64(self.end_time.text())
 
         fn = './previously_loaded_meshes/'+self.fileName.split('/')[-1].split('.')[0]
         fn, neighxy, i = plotT2Series(T = self.T, XY = self.XY, x = float(self.X_box.text()), y = float(self.Y_box.text()),
                     SE = self.SE, Vel = self.Vel, t0 = start_time, t1 = end_time)
+        self.i = i
 
         Im = QPixmap(fn+'_WSE.png')
         Im = Im.scaled(200*15/4,200, transformMode = Qt.SmoothTransformation)
@@ -601,16 +704,65 @@ class MyTableWidget(QWidget):
         i_str = str(i)
         self.Bath_label.setText('Bath: ' + bath_str + " m\nManning's n: " + frict_str + '\nIndex: ' + i_str)
 
+    def exportGraph1(self):
+        lab = 'x: %d, y: %d' % (slf.XY[self.i,0],slf.XY[self.i,1])
+        fn, _ = QFileDialog.getSaveFileName(self,"QFileDialog.getSaveFileName()","","All Files (*);;PNG Files (*.png)", options=QFileDialog.Options())
+        start_time = np.datetime64(self.start_time.text())
+        end_time = np.datetime64(self.end_time.text())
 
+        if len(fn) > 0:
+            exportSeries(fn, self.T, self.SE[self.i,:], start_time, end_time, label = lab, ylabel = 'Water Surface Elevation [m]')
+
+    def exportGraph2(self):
+        lab = 'x: %d, y: %d' % (slf.XY[self.i,0],slf.XY[self.i,1])
+        fn, _ = QFileDialog.getSaveFileName(self,"QFileDialog.getSaveFileName()","","All Files (*);;PNG Files (*.png)", options=QFileDialog.Options())
+        start_time = np.datetime64(self.start_time.text())
+        end_time = np.datetime64(self.end_time.text())
+
+        if len(fn) > 0:
+            exportSeries(fn, self.T, self.Vel[self.i,:], start_time, end_time, label = lab, ylabel = 'Water velocity [m/s]')
+
+    def setVideoSettings(self):
+        dlg = VideoSettingDialog(None)
+
+        if self.videosettingschanged:
+            if self.videolims != None:
+                dlg.SetWinLim.setChecked(True)
+                dlg.WinLeft.setValue(self.videolims[0])
+                dlg.WinRight.setValue(self.videolims[1])
+                dlg.WinTop.setValue(self.videolims[2])
+                dlg.WinBot.setValue(self.videolims[3])
+
+            dlg.Min.setValue(self.videomin)
+            dlg.Max.setValue(self.videomax)
+
+        dlg.exec_( )
+
+        if dlg.good_exit:
+            self.videosettingschanged = True
+            self.videovar = dlg.var
+            self.videomin = dlg.min
+            self.videomax = dlg.max
+            self.videolims = dlg.lims
+            if len(np.unique(self.videolims)) == 1:
+                self.videolims = None
 
     def plotVideo(self):
+
+        if self.videosettingschanged == False:
+            self.videovar = 0
+            self.videomin = -1
+            self.videomax = 5
+            self.videolims = None
+
+
         options = QFileDialog.Options()
         fn, _ = QFileDialog.getSaveFileName(self,"QFileDialog.getSaveFileName()","","All Files (*);;Text Files (*.txt)", options=options)
 
         if fn:
             self.thread = VideoThread()
             self.sig.connect(self.thread.on_source)
-            self.sig.emit([self.fn, fn])
+            self.sig.emit([self.fn, fn, [self.videovar, self.videomin, self.videomax, self.videolims]])
             self.thread.start()
             self.thread.sig1.connect(self.on_info)
 
@@ -666,11 +818,26 @@ class MyTableWidget(QWidget):
                 }
             """)
 
-
             try: self.scat1.remove()
             except: pass
             self.scat1 = self.ax.scatter(event.xdata, event.ydata, s = 25, color = (1, 128/255, 0), zorder = 1e9)
             self.canvas.draw()
+
+    def addCoorToMap(self):
+        dlg = AddCoorDialog(None)
+        dlg.exec_()
+
+        if dlg.good_exit:
+            x = dlg.x
+            y = dlg.y
+
+            try: self.scat1.remove()
+            except: pass
+            self.scat1 = self.ax.scatter(x, y, s = 25, color = (1, 128/255, 0), zorder = 1e9)
+            self.canvas.draw()
+
+            self.X_box.setText('%.2f' % x)
+            self.Y_box.setText('%.2f' % y)
 
     def plotMeshVar(self):
 
@@ -698,19 +865,6 @@ class MyTableWidget(QWidget):
             self.ax = self.figure.add_subplot(111)
             plotVarMesh(self.X, self.Y, self.ikle, var, label_str, min = varmin, max = varmax, ax = self.ax, fig = self.figure)
             self.canvas.draw()
-
-            """
-            options = QFileDialog.Options()
-            fn, _ = QFileDialog.getSaveFileName(self,"QFileDialog.getSaveFileName()","","All Files (*);;Text Files (*.txt)", options=options)
-
-try:
-    self.figure.cb.clear()
-            if fn:
-                if fn[-4:] != '.png': fn += '.png'
-                self.ax.clear()
-                plotVarMesh(self.X, self.Y, self.ikle, var, fn, label_str, min = float(dlg.min.text()), max = float(dlg.max.text()), ax = self.ax, fig = self.figure)
-                self.canvas.draw()
-            """
 
             self.ReloadMesh.setDisabled(False)
 

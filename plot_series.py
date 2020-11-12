@@ -81,6 +81,20 @@ def plotT2Series(T, XY, x, y, SE, Vel, t0, t1, plot_fn = 'support_files/plot_ser
 
     return plot_fn, neighxy, i
 
+def exportSeries(fn, T, var, t0, t1, label = '', ylabel = ''):
+    f, a = plt.subplots(figsize = (15,4))
+    a.plot(T, var,'.-', color = (1, 128/255, 0), label = label)
+    if len(label) > 0:
+        a.legend(loc = 1)
+    a.grid('on')
+    a.set_ylabel(ylabel, fontweight = 'bold', fontsize = 11)
+    a.set_xlim(t0,t1)
+    a.set_ylim(max(-999,np.min(var)), min(999,np.max(var)))
+    f.savefig(fn)
+    f.clear()
+    del f
+
+###########################################################################################################################################################################################################
 def plotVarMesh(x,y,ikle,var, label_str, path = None, min = 0, max = 1e9, ax = None, fig = None):
 
     # ------------------------------------------------------------------------------ #

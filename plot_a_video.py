@@ -22,7 +22,8 @@ class VideoThread(QThread):
         QThread.__init__(self, parent)
 
     def on_source(self, lis):
-        self.source_txt, self.fn = lis
+        self.source_txt, self.fn, videoparams = lis
+        [self.var, self.min, self.max, self.lims] = videoparams
 
     def run(self):
         self.sig1.emit('Preparing the animation procedure...')
@@ -32,8 +33,8 @@ class VideoThread(QThread):
         # video parameters
         var2plot = 'SE'
         var2plot_label = 'Water Surface Elevation [m]'
-        h_min = -1
-        h_max = 5
+        h_min = self.min
+        h_max = self.max
         timestep = 50*3
         #----------------------------------------------------------------------------#
         start_time = time.time()
@@ -62,16 +63,15 @@ class VideoThread(QThread):
 
         f, a = plt.subplots(figsize=(15, 15))
 
+        if self.var == 0:
+            var = SE
+
         # the actual plot
-        tc = a.tripcolor(x, y, ikle - 1, SE[:, 0], vmin=h_min, vmax=h_max, cmap='ocean')
+        tc = a.tripcolor(x, y, ikle - 1, var[:, 0], vmin=h_min, vmax=h_max, cmap='ocean')
 
         # clean axes
         a.axis('off')
         a.set_aspect('equal')
-
-        # set ax limits
-        #a.set_xlim(663000,663312)
-        #a.set_ylim(9801009,9801460)
 
         # create a nice colorbar
         divider = make_axes_locatable(a)
@@ -79,6 +79,11 @@ class VideoThread(QThread):
         cb = f.colorbar(tc, orientation='horizontal', cax=cax)
         cb.ax.set_title('Water Surface elevation', size=18)
         cb.ax.tick_params(labelsize=18)
+
+        # set axes limits
+        if self.lims != None:
+            a.set_xlim(self.lims[0], self.lims[1])
+            a.set_ylim(self.lims[3], self.lims[2])
 
         # get axes limits
         ymin, ymax = a.get_ylim()
@@ -115,7 +120,7 @@ class VideoThread(QThread):
 
                 tim = '%d hrs %d mins' % (hrs, min)
                 a1 = a.annotate(tim, [xmin + 7/10*xrange, ymin + 1/10*yrange], size=16, color='black')
-                tc = a.tripcolor(x, y, ikle - 1, SE[:, i], vmin=h_min, vmax=h_max, cmap='ocean')
+                tc = a.tripcolor(x, y, ikle - 1, var[:, i], vmin=h_min, vmax=h_max, cmap='ocean')
 
                 dt = time.time() - t0
                 estimated_time = dt*(cols - i)
