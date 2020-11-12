@@ -34,6 +34,7 @@ from load_mesh import *
 from plot_series import *
 from plot_a_video import *
 from dialogs import *
+from getNeigh import getNeighbor
 
 
 os.chdir('/home/ignace/Custom_Libraries/t2viewer/')
@@ -336,51 +337,15 @@ class MyTableWidget(QWidget):
         # Time Series #
         # ------------#
 
-        # Qlabel to load graph into
-        self.Graph1 = QLabel()
-        self.Graph2 = QLabel()
-
-        self.ExportGraph1 = QPushButton()
-        im = QIcon('support_files/export.png')
-        self.ExportGraph1.setIcon(im)
-        self.ExportGraph1.setDisabled(True)
-        self.ExportGraph1.clicked.connect(self.exportGraph1)
-        self.ExportGraph1.setStyleSheet("""
-        QPushButton {
-            border-width: 25px solid white;
-            border-radius: 0px;
-            color: rgb(180,180,180);
-            background-color: rgb(55, 55, 60, 0);
-            }
-        QPushButton:pressed {
-            color: rgb(100,100,100,150);
-            background-color: rgb(25, 25, 25, 150);
-            }
-        """)
-
-        self.ExportGraph2 = QPushButton()
-        im = QIcon('support_files/export.png')
-        self.ExportGraph2.setIcon(im)
-        self.ExportGraph2.setDisabled(True)
-        self.ExportGraph2.clicked.connect(self.exportGraph2)
-        self.ExportGraph2.setStyleSheet("""
-        QPushButton {
-            border-width: 25px solid white;
-            border-radius: 0px;
-            color: rgb(180,180,180);
-            background-color: rgb(55, 55, 60, 0);
-            }
-        QPushButton:pressed {
-            color: rgb(100,100,100,150);
-            background-color: rgb(25, 25, 25, 150);
-            }
-        """)
+        # time series objects
+        self.WSE_series = TimeSeries('Water Surface Elevation [m]')
+        self.Vel_series = TimeSeries('Water Velocity [m/s]')
 
         # ----------------------#
         # Main window with mesh #
         # ----------------------#
 
-        # Qlabel to show the mesh in
+        # FigureCanvas to show the mesh in
         self.figure = plt.figure()
         self.figure.set_facecolor((45/255, 45/255, 45/255))
         self.canvas = FigureCanvas(self.figure)
@@ -543,28 +508,8 @@ class MyTableWidget(QWidget):
 
         self.grid.addLayout(self.box_buttons, 0, 15, 10, 1)
 
-        self.grid.addWidget(self.Graph1,3,11,3,4)
-        self.grid.addWidget(self.Graph2,6,11,3,4)
-        box1_export1 = QHBoxLayout()
-        box1_export1.addStretch()
-        box1_export1.addWidget(self.ExportGraph1)
-        box1_export1.addSpacing(7)
-        box2_export1 = QVBoxLayout()
-        box2_export1.addSpacing(7)
-        box2_export1.addLayout(box1_export1)
-        box2_export1.addStretch()
-        self.grid.addLayout(box2_export1,3,11,3,4)
-
-        box1_export2 = QHBoxLayout()
-        box1_export2.addStretch()
-        box1_export2.addWidget(self.ExportGraph2)
-        box1_export2.addSpacing(7)
-        box2_export2 = QVBoxLayout()
-        box2_export2.addSpacing(7)
-        box2_export2.addLayout(box1_export2)
-        box2_export2.addStretch()
-        self.grid.addLayout(box2_export2,6,11,3,4)
-
+        self.grid.addWidget(self.WSE_series,3,11,3,4)
+        self.grid.addWidget(self.Vel_series,6,11,3,4)
 
         self.setLayout(self.grid)
 
@@ -654,26 +599,27 @@ class MyTableWidget(QWidget):
         self.end_time.setText(end_t)
 
     def plotTimeSeries(self):
-        self.ExportGraph1.setEnabled(True)
-        self.ExportGraph2.setEnabled(True)
 
         start_time = np.datetime64(self.start_time.text())
         end_time = np.datetime64(self.end_time.text())
 
-        fn = './previously_loaded_meshes/'+self.fileName.split('/')[-1].split('.')[0]
-        fn, neighxy, i = plotT2Series(T = self.T, XY = self.XY, x = float(self.X_box.text()), y = float(self.Y_box.text()),
-                    SE = self.SE, Vel = self.Vel, t0 = start_time, t1 = end_time)
+        x = float(self.X_box.text())
+        y = float(self.Y_box.text())
+
+        X = self.XY[:,0]
+        Y = self.XY[:,1]
+
+        # find the closest node to the requested lat and lon
+        neighxy= getNeighbor([x, y], self.XY, return_index = False)
+        x_node, y_node = neighxy
+        rx = np.where(X == x_node)
+        ry = np.where(Y == y_node)
+        i = np.intersect1d(rx,ry)[0]
+
+        self.WSE_series.plotSeries(T = self.T, var = self.SE[i,:], t0 = start_time, t1 = end_time, x = X[i], y = Y[i])
+        self.Vel_series.plotSeries(T = self.T, var = self.Vel[i,:], t0 = start_time, t1 = end_time, x = X[i], y = Y[i])
+
         self.i = i
-
-        Im = QPixmap(fn+'_WSE.png')
-        Im = Im.scaled(200*15/4,200, transformMode = Qt.SmoothTransformation)
-        self.Graph1.clear()
-        self.Graph1.setPixmap(Im)
-
-        Im = QPixmap(fn+'_Vel.png')
-        Im = Im.scaled(200*15/4,200, transformMode = Qt.SmoothTransformation)
-        self.Graph2.clear()
-        self.Graph2.setPixmap(Im)
 
         try: self.scat2.remove()
         except: pass
@@ -703,24 +649,6 @@ class MyTableWidget(QWidget):
         frict_str = '%.3f' % self.N[i,0]
         i_str = str(i)
         self.Bath_label.setText('Bath: ' + bath_str + " m\nManning's n: " + frict_str + '\nIndex: ' + i_str)
-
-    def exportGraph1(self):
-        lab = 'x: %d, y: %d' % (self.XY[self.i,0],self.XY[self.i,1])
-        fn, _ = QFileDialog.getSaveFileName(self,"QFileDialog.getSaveFileName()","","All Files (*);;PNG Files (*.png)", options=QFileDialog.Options())
-        start_time = np.datetime64(self.start_time.text())
-        end_time = np.datetime64(self.end_time.text())
-
-        if len(fn) > 0:
-            exportSeries(fn, self.T, self.SE[self.i,:], start_time, end_time, label = lab, ylabel = 'Water Surface Elevation [m]')
-
-    def exportGraph2(self):
-        lab = 'x: %d, y: %d' % (self.XY[self.i,0],self.XY[self.i,1])
-        fn, _ = QFileDialog.getSaveFileName(self,"QFileDialog.getSaveFileName()","","All Files (*);;PNG Files (*.png)", options=QFileDialog.Options())
-        start_time = np.datetime64(self.start_time.text())
-        end_time = np.datetime64(self.end_time.text())
-
-        if len(fn) > 0:
-            exportSeries(fn, self.T, self.Vel[self.i,:], start_time, end_time, label = lab, ylabel = 'Water velocity [m/s]')
 
     def setVideoSettings(self):
         dlg = VideoSettingDialog(None)

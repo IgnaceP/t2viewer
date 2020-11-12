@@ -3,84 +3,163 @@ from getNeigh import getNeighbor
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import os
+from PyQt5.QtCore    import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui     import *
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
+import matplotlib.image as mpimg
 
-def plotT2Series(T, XY, x, y, SE, Vel, t0, t1, plot_fn = 'support_files/plot_series'):
-    """
-    Function to plot a time series from a Telemac 2D Output file
-    ! important note: the resulting plot is not an interpolation but the info from the closest node!
+class TimeSeries(QWidget):
+        def __init__(self, label, parent = None):
+            super(TimeSeries, self).__init__(parent)
 
-    Args:
-    - output_fn (Required): file path to output file (often out_t2d.slf)
-    - x & y (Required): Coordinate pair (in utm) of the location where to plot
-    - plot_fn (Optional, defaults to output/plot_series.png): File path to plotted series
-    - start_date (Optional): Datetime corresponding to the start of the simulation
+            self.label = label
 
-    Output:
+            self.init()
+            self.implementGrid()
 
-    """
+        def init(self):
+            # FigureCanvas to show the mesh in
+            self.figure = plt.figure()
+            self.figure.set_facecolor((45/255, 45/255, 45/255))
+            self.canvas = FigureCanvas(self.figure)
+            self.canvas.setFixedSize(750,276)
 
-    X = XY[:,0]
-    Y = XY[:,1]
+            self.figure.subplots_adjust(left = 0.1, right = 0.94, bottom = 0.1, top = 0.9)
+            self.ax = self.figure.add_subplot(111)
+            self.ax.set_xlim(0,1.25)
+            self.ax.set_facecolor((45/255, 45/255, 45/255))
 
-    # find the closest node to the requested lat and lon
-    neighxy= getNeighbor([x, y], XY, return_index = False)
-    x_node, y_node = neighxy
-    rx = np.where(X == x_node)
-    ry = np.where(Y == y_node)
-    i = np.intersect1d(rx,ry)[0]
+            broken_white = (150/255, 150/255, 150/255)
+            self.ax.grid('on', color = broken_white)
+            self.ax.spines['bottom'].set_color(broken_white)
+            self.ax.spines['top'].set_color(broken_white)
+            self.ax.spines['right'].set_color(broken_white)
+            self.ax.spines['left'].set_color(broken_white)
+            self.ax.tick_params(axis='x', colors=broken_white, labelsize = 7)
+            self.ax.tick_params(axis='y', colors=broken_white, labelsize = 7)
+            self.ax.xaxis.label.set_color(broken_white)
+            self.ax.yaxis.label.set_color(broken_white)
 
-    SEseries = np.array(SE[i,:])
-    Velseries = np.array(Vel[i,:])
+            self.ax.set_ylabel(self.label, fontweight = 'bold', fontsize = 9)
 
-    mask = (T>t0)*(T<t1)
-    SEmin = np.min(SEseries[mask])
-    SEmax = np.max(SEseries[mask])
-    SErange = SEmax - SEmin
-    Velmin = np.min(Velseries[mask])
-    Velmax = np.max(Velseries[mask])
-    Velrange = Velmax - -Velmin
+            self.Export = QPushButton()
+            self.Export.setToolTip('Export graph as PNG')
+            im = QIcon('support_files/export.png')
+            self.Export.setIcon(im)
+            self.Export.setDisabled(True)
+            self.Export.clicked.connect(self.exportGraph)
+            self.Export.setStyleSheet("""
+            QPushButton {
+                border-width: 25px solid white;
+                border-radius: 0px;
+                color: rgb(180,180,180);
+                background-color: rgb(55, 55, 60, 0);
+                }
+            QPushButton:pressed {
+                color: rgb(100,100,100,150);
+                background-color: rgb(25, 25, 25, 150);
+                }
+            """)
+
+            self.AddExtSeries = QPushButton()
+            self.AddExtSeries.setToolTip('Add a series from a npy file')
+            im = QIcon('support_files/add.png')
+            self.AddExtSeries.setIcon(im)
+            self.AddExtSeries.setDisabled(True)
+            #self.AddExtSeries.clicked.connect(self.addExtraSeries)
+            self.AddExtSeries.setStyleSheet("""
+            QPushButton {
+                border-width: 25px solid white;
+                border-radius: 0px;
+                color: rgb(180,180,180);
+                background-color: rgb(55, 55, 60, 0);
+                }
+            QPushButton:pressed {
+                color: rgb(100,100,100,150);
+                background-color: rgb(25, 25, 25, 150);
+                }
+            """)
+
+            self.SaveNPY = QPushButton()
+            self.SaveNPY.setToolTip('Save the series in a numpy array file (.npy)')
+            im = QIcon('support_files/save_npy.png')
+            self.SaveNPY.setIcon(im)
+            self.SaveNPY.setDisabled(True)
+            #self.SaveNPY.clicked.connect(self.saveNPY)
+            self.SaveNPY.setStyleSheet("""
+            QPushButton {
+                border-width: 25px solid white;
+                border-radius: 0px;
+                color: rgb(180,180,180);
+                background-color: rgb(55, 55, 60, 0);
+                }
+            QPushButton:pressed {
+                color: rgb(100,100,100,150);
+                background-color: rgb(25, 25, 25, 150);
+                }
+            """)
 
 
-    f, a = plt.subplots(figsize = (15,4))
-    a.plot(T, SEseries,'.-', color = (1, 128/255, 0))
-    a.grid('on')
-    a.set_ylabel('Water Surface Elevation [m]', fontweight = 'bold', fontsize = 14)
-    a.spines['bottom'].set_color('white')
-    a.spines['top'].set_color('white')
-    a.spines['right'].set_color('white')
-    a.spines['left'].set_color('white')
-    a.tick_params(axis='x', colors='white')
-    a.tick_params(axis='y', colors='white')
-    a.xaxis.label.set_color('white')
-    a.yaxis.label.set_color('white')
-    a.set_xlim(t0,t1)
-    a.set_ylim(max(-999,SEmin - 0.1*SErange), min(999,SEmax + 0.1*SErange))
-    f.savefig(plot_fn+'_WSE.png', bbox_inches = 'tight', transparent = True)
 
-    f.clear()
-    del f
+        def implementGrid(self):
+            grid = QGridLayout()
+            grid.addWidget(self.canvas,0,0)
 
-    f, a = plt.subplots(figsize = (15,4))
-    a.plot(T, Velseries,'.-', color = (1, 128/255, 0))
-    a.grid('on')
-    a.set_ylabel('Velocity [m/s]', fontweight = 'bold', fontsize = 14)
-    a.spines['bottom'].set_color('white')
-    a.spines['top'].set_color('white')
-    a.spines['right'].set_color('white')
-    a.spines['left'].set_color('white')
-    a.tick_params(axis='x', colors='white')
-    a.tick_params(axis='y', colors='white')
-    a.xaxis.label.set_color('white')
-    a.yaxis.label.set_color('white')
-    a.set_xlim(t0,t1)
-    a.set_ylim(max(-999,Velmin - 0.1*Velrange), min(999,Velmax + 0.1*Velrange))
-    f.savefig(plot_fn+'_Vel.png', bbox_inches = 'tight', transparent = True)
+            box1 = QVBoxLayout()
+            box1.addSpacing(30)
+            box1.addWidget(self.Export)
+            box1.addWidget(self.AddExtSeries)
+            box1.addWidget(self.SaveNPY)
+            box1.addStretch()
+            box2 = QHBoxLayout()
+            box2.addStretch()
+            box2.addLayout(box1)
+            box2.addSpacing(15)
+            grid.addLayout(box2,0,0)
 
-    f.clear()
-    del f
+            self.setLayout(grid)
 
-    return plot_fn, neighxy, i
+        def plotSeries(self, T, var, t0, t1, x, y):
 
+            self.Export.setEnabled(True)
+            self.AddExtSeries.setEnabled(True)
+            self.SaveNPY.setEnabled(True)
+
+            self.x, self.y = x, y
+            self.T = T
+            self.var = var
+            self.t0 = t0
+            self.t1 = t1
+
+            mask = (T>t0)*(T<t1)
+            self.varmin = np.min(var[mask])
+            self.varmax = np.max(var[mask])
+            self.varrange = self.varmax - self.varmin
+
+            self.ax.set_xlim(t0,t1)
+            self.ax.plot(T, var,'.-', color = (1, 128/255, 0))
+            self.ax.set_ylim(max(-999,self.varmin - 0.1*self.varrange), min(999,self.varmax + 0.1*self.varrange))
+            self.canvas.draw()
+
+        def exportGraph(self):
+            lab = 'x: %d, y: %d' % (self.x, self.y)
+            fn, _ = QFileDialog.getSaveFileName(self,"QFileDialog.getSaveFileName()","","All Files (*);;PNG Files (*.png)", options=QFileDialog.Options())
+
+            f, a = plt.subplots(figsize = (15,4))
+            a.plot(self.T, self.var,'.-', color = (1, 128/255, 0), label = lab)
+            a.grid('on')
+            a.set_ylabel(self.label, fontweight = 'bold', fontsize = 11)
+            a.set_xlim(self.t0,self.t1)
+            a.set_ylim(max(-999,self.varmin - 0.1*self.varrange), min(999,self.varmax + 0.1*self.varrange))
+            f.savefig(fn)
+            f.clear()
+
+
+
+###########################################################################################################################################################################################################
 def exportSeries(fn, T, var, t0, t1, label = '', ylabel = ''):
 
     mask = (T>t0)*(T<t1)
