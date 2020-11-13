@@ -20,6 +20,9 @@ class TimeSeries(QWidget):
             self.init()
             self.implementGrid()
 
+            self.new_series = []
+            self.new_series_labels = []
+
         def init(self):
             # FigureCanvas to show the mesh in
             self.figure = plt.figure()
@@ -69,7 +72,7 @@ class TimeSeries(QWidget):
             im = QIcon('support_files/add.png')
             self.AddExtSeries.setIcon(im)
             self.AddExtSeries.setDisabled(True)
-            #self.AddExtSeries.clicked.connect(self.addExtraSeries)
+            self.AddExtSeries.clicked.connect(self.addExtraSeries)
             self.AddExtSeries.setStyleSheet("""
             QPushButton {
                 border-width: 25px solid white;
@@ -88,7 +91,7 @@ class TimeSeries(QWidget):
             im = QIcon('support_files/save_npy.png')
             self.SaveNPY.setIcon(im)
             self.SaveNPY.setDisabled(True)
-            #self.SaveNPY.clicked.connect(self.saveNPY)
+            self.SaveNPY.clicked.connect(self.saveNPY)
             self.SaveNPY.setStyleSheet("""
             QPushButton {
                 border-width: 25px solid white;
@@ -101,8 +104,6 @@ class TimeSeries(QWidget):
                 background-color: rgb(25, 25, 25, 150);
                 }
             """)
-
-
 
         def implementGrid(self):
             grid = QGridLayout()
@@ -135,49 +136,83 @@ class TimeSeries(QWidget):
             self.t1 = t1
 
             mask = (T>t0)*(T<t1)
+            self.mask = mask
             self.varmin = np.min(var[mask])
             self.varmax = np.max(var[mask])
             self.varrange = self.varmax - self.varmin
 
             self.ax.set_xlim(t0,t1)
-            self.ax.plot(T, var,'.-', color = (1, 128/255, 0))
+
+            self.ax.clear()
+            self.ax.grid('on')
+            self.ax.plot(T, var,'.-', color = (1, 128/255, 0), label = 'active output')
             self.ax.set_ylim(max(-999,self.varmin - 0.1*self.varrange), min(999,self.varmax + 0.1*self.varrange))
+            self.ax.set_ylabel(self.label, fontweight = 'bold', fontsize = 9)
             self.canvas.draw()
 
         def exportGraph(self):
             lab = 'x: %d, y: %d' % (self.x, self.y)
             fn, _ = QFileDialog.getSaveFileName(self,"QFileDialog.getSaveFileName()","","All Files (*);;PNG Files (*.png)", options=QFileDialog.Options())
 
-            f, a = plt.subplots(figsize = (15,4))
-            a.plot(self.T, self.var,'.-', color = (1, 128/255, 0), label = lab)
-            a.grid('on')
-            a.set_ylabel(self.label, fontweight = 'bold', fontsize = 11)
-            a.set_xlim(self.t0,self.t1)
-            a.set_ylim(max(-999,self.varmin - 0.1*self.varrange), min(999,self.varmax + 0.1*self.varrange))
-            f.savefig(fn)
-            f.clear()
+            if len(fn) > 0:
+                f, a = plt.subplots(figsize = (15,4))
+                f.subplots_adjust(left = 0.1, right = 0.94, bottom = 0.1, top = 0.9)
+                a.plot(self.T, self.var,'.-', color = (1, 128/255, 0), label = lab)
+                a.grid('on')
+                a.set_ylabel(self.label, fontweight = 'bold', fontsize = 11)
+                a.set_xlim(self.t0,self.t1)
+                a.set_ylim(max(-999,self.varmin - 0.1*self.varrange), min(999,self.varmax + 0.1*self.varrange))
+
+                for i in range(len(self.new_series)):
+                    series = self.new_series[i]
+                    lab = self.new_series_labels[i]
+                    T = np.array(series[:,0], dtype = 'datetime64')
+                    V = series[:,1]
+                    a.plot(T, V, '.-', label = lab)
+
+                a.set_ylim(max(-999,self.varmin - 0.1*self.varrange), min(999,self.varmax + 0.1*self.varrange))
+                a.legend(loc = 1)
+                f.savefig(fn)
+                f.clear()
+
+        def saveNPY(self):
+            fn, _ = QFileDialog.getSaveFileName(self,"QFileDialog.getSaveFileName()","","All Files (*);;Numpy Files (*.npy)", options=QFileDialog.Options())
+
+            if len(fn) > 0:
+                if fn[-4:] != '.npy': fn + '.npy'
+                T = self.T[self.mask]
+                var = self.var[self.mask]
+                arr = np.empty((T.shape[0], 2))
+                arr[:,0] = T
+                arr[:,1] = var
+
+                np.save(fn, arr)
+
+        def addExtraSeries(self):
+            options = QFileDialog.Options()
+            fn, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","Numpy files (*.npy)", options=options)
+
+            if len(fn) > 0:
+                arr = np.load(fn)
+                if arr.shape[1] != 2:
+                    msg = QMessageBox()
+                    msg.setIcon(QMessageBox.Critical)
+                    msg.setText("Not a valid numpy file. This array does not have two columns.")
+                    msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+
+                else:
+                    self.new_series.append(arr)
+                    self.new_series_labels.append(fn.split('/')[-1])
+                    T = np.array(arr[:,0], dtype = 'datetime64')
+                    self.ax.plot(T, arr[:,1], '.-', label = fn.split('/')[-1])
+                    self.ax.legend(loc = 1)
+                    self.varmin = np.min([self.varmin, np.min(arr[:,1])])
+                    self.varmax = np.max([self.varmax, np.max(arr[:,1])])
+                    self.varrange = abs(self.varmax - self.varmin)
+                    self.ax.set_ylim(max(-999,self.varmin - 0.1*self.varrange), min(999,self.varmax + 0.1*self.varrange))
+                    self.canvas.draw()
 
 
-
-###########################################################################################################################################################################################################
-def exportSeries(fn, T, var, t0, t1, label = '', ylabel = ''):
-
-    mask = (T>t0)*(T<t1)
-    varmin = np.min(var[mask])
-    varmax = np.max(var[mask])
-    varrange = varmax - varmin
-
-    f, a = plt.subplots(figsize = (15,4))
-    a.plot(T, var,'.-', color = (1, 128/255, 0), label = label)
-    if len(label) > 0:
-        a.legend(loc = 1)
-    a.grid('on')
-    a.set_ylabel(ylabel, fontweight = 'bold', fontsize = 11)
-    a.set_xlim(t0,t1)
-    a.set_ylim(max(-999,varmin - 0.1*varrange), min(999,varmax + 0.1*varrange))
-    f.savefig(fn)
-    f.clear()
-    del f
 
 ###########################################################################################################################################################################################################
 def plotVarMesh(x,y,ikle,var, label_str, path = None, min = 0, max = 1e9, ax = None, fig = None):
