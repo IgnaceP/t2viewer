@@ -776,12 +776,15 @@ class MyTableWidget(QWidget):
 
         dlg.exec_( )
 
-        if dlg.variable == 1: var = self.U[:,dlg.t]; label_str = 'U [m/s]'
-        if dlg.variable == 2: var = self.V[:,dlg.t]; label_str = 'V [m/s]'
-        if dlg.variable == 3: var = self.H[:,dlg.t]; label_str = 'Water Depth [m]'
-        if dlg.variable == 4: var = self.SE[:,dlg.t]; label_str = 'Water Surface Elevation [m]'
-        if dlg.variable == 5: var = self.B[:,dlg.t]; label_str = 'Bathymetry [m]'
-        if dlg.variable == 6: var = self.N[:,dlg.t]; label_str = "Manning's n"
+        if dlg.variable == 1: var = self.U; label_str = 'U [m/s]'
+        if dlg.variable == 2: var = self.V; label_str = 'V [m/s]'
+        if dlg.variable == 3: var = self.H; label_str = 'Water Depth [m]'
+        if dlg.variable == 4: var = self.SE; label_str = 'Water Surface Elevation [m]'
+        if dlg.variable == 5: var = self.B; label_str = 'Bathymetry [m]'
+        if dlg.variable == 6: var = self.N; label_str = "Manning's n"
+
+        if var.ndim == 2:
+            var = var[:,dlg.t]
 
         if dlg.variable != None:
 
