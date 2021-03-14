@@ -3,7 +3,7 @@
 import numpy as np
 import sys
 
-import ppmodules.selafin_io_pp as pps
+import selafin_io_pp as pps
 
 
 ################################################################################
