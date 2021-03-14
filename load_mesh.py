@@ -9,7 +9,7 @@ from matplotlib.colors import ListedColormap
 from shutil import copyfile
 
 
-def loadMeshFromSLF(output_fn, figure, canvas, ignore_previously_saved_files = False):
+def loadMeshFromSLF(output_fn, figure, canvas, ignore_previously_saved_files = False, return_tc = False):
     """
     Function to load a msh from a selafin object and save it is as a plot)
     """
@@ -70,14 +70,17 @@ def loadMeshFromSLF(output_fn, figure, canvas, ignore_previously_saved_files = F
 
         else: [xmin, xmax, ymin, ymax] = np.load(fn_box)
 
-    ax = plotMesh(name, figure)
+    ax, tc = plotMesh(name, figure, return_tc = True)
 
-    return name, ax
+    if return_tc:
+        return name, ax, tc
+    else:
+        return name, ax
 
 
 
 
-def plotMesh(name, figure):
+def plotMesh(name, figure, return_tc = False):
     # ------------------------------------------------------------------------------ #
     # Plot the Mesh
 
@@ -107,4 +110,7 @@ def plotMesh(name, figure):
     ax.set_aspect('equal')
     print('ready!')
 
-    return ax
+    if return_tc:
+        return ax, tc
+    else:
+        return ax

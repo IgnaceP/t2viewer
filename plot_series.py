@@ -215,7 +215,7 @@ class TimeSeries(QWidget):
 
 
 ###########################################################################################################################################################################################################
-def plotVarMesh(x,y,ikle,var, label_str, path = None, min = 0, max = 1e9, ax = None, fig = None):
+def plotVarMesh(x,y,ikle,var, label_str, title_str = '', path = None, min = 0, max = 1e9, ax = None, fig = None, showedges = True):
 
     # ------------------------------------------------------------------------------ #
     # Plot the Mesh
@@ -227,13 +227,20 @@ def plotVarMesh(x,y,ikle,var, label_str, path = None, min = 0, max = 1e9, ax = N
         fig, ax = plt.subplots(figsize = (12,12))
     plt.tight_layout()
     ax.cla()
-    tc = ax.tripcolor(x, y, ikle-1, var, vmin = min, vmax = max, cmap = 'gist_earth')
-    #tc.set_edgecolors('white')
+
+    if showedges:
+        tc = ax.tripcolor(x, y, ikle-1, var, vmin = min, vmax = max, cmap = 'gist_earth', ec = 'white', linewidth = 0.025)
+    else:
+        tc = ax.tripcolor(x, y, ikle-1, var, vmin = min, vmax = max, cmap = 'gist_earth')
+
     ax.axis('off')
     ax.margins(2)
     ax.set_xlim(xmin - 0.05*(xmax - xmin), xmax + 0.05*(xmax - xmin))
     ax.set_ylim(ymin - 0.05*(ymax - ymin), ymax + 0.05*(ymax - ymin))
     ax.set_aspect('equal')
+
+    if len(title_str) > 0:
+        ax.set_title(title_str, color = 'white')
 
     divider = make_axes_locatable(ax)
     cax = divider.append_axes("bottom", size="5%", pad=0.05)

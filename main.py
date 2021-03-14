@@ -538,7 +538,7 @@ class MyTableWidget(QWidget):
         if self.LoadPrevious.isChecked(): ignore_previously_saved_files = True
         else : ignore_previously_saved_files = False
 
-        self.name, self.ax = loadMeshFromSLF(self.fileName, self.figure, self.canvas, ignore_previously_saved_files = ignore_previously_saved_files)
+        self.name, self.ax, self.tc = loadMeshFromSLF(self.fileName, self.figure, self.canvas, ignore_previously_saved_files = ignore_previously_saved_files, return_tc = True)
         self.canvas.draw()
         self.loadArrays()
 
@@ -776,25 +776,26 @@ class MyTableWidget(QWidget):
 
         dlg.exec_( )
 
-        if dlg.variable == 1: var = self.U; label_str = 'U [m/s]'
-        if dlg.variable == 2: var = self.V; label_str = 'V [m/s]'
-        if dlg.variable == 3: var = self.H; label_str = 'Water Depth [m]'
-        if dlg.variable == 4: var = self.SE; label_str = 'Water Surface Elevation [m]'
-        if dlg.variable == 5: var = self.B; label_str = 'Bathymetry [m]'
-        if dlg.variable == 6: var = self.N; label_str = "Manning's n"
+        if dlg.variable == 1: var = self.U; label_str = 'U [m/s] at timestep %d' % dlg.t
+        if dlg.variable == 2: var = self.V; label_str = 'V [m/s] at timestep %d' % dlg.t
+        if dlg.variable == 3: var = self.H; label_str = 'Water Depth [m] at timestep %d' % dlg.t
+        if dlg.variable == 4: var = self.SE; label_str = 'Water Surface Elevation [m] at timestep %d' % dlg.t
+        if dlg.variable == 5: var = self.B; label_str = 'Bathymetry [m] at timestep %d' % dlg.t
+        if dlg.variable == 6: var = self.N; label_str = "Manning's n at timestep %d" % dlg.t
 
-        if var.ndim == 2:
-            var = var[:,dlg.t]
 
         if dlg.variable != None:
+
+            if var.ndim == 2: var = var[:,dlg.t]
 
             if len(dlg.min.text()) == 0 or len(dlg.max.text()) == 0: varmin, varmax = np.min(var),np.max(var)
             else: varmin, varmax = float(dlg.min.text()),float(dlg.max.text())
 
-            #self.ax.clear()
+            self.ax.clear()
             self.figure.clf()
             self.ax = self.figure.add_subplot(111)
-            plotVarMesh(self.X, self.Y, self.ikle, var, label_str, min = varmin, max = varmax, ax = self.ax, fig = self.figure)
+            plotVarMesh(self.X, self.Y, self.ikle, var, label_str, min = varmin, max = varmax, ax = self.ax, fig = self.figure, showedges = dlg.showgridedges)
+            
             self.canvas.draw()
 
             self.ReloadMesh.setDisabled(False)

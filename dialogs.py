@@ -42,6 +42,9 @@ class PlotMeshVarDialog(QDialog):
         self.range = QLabel('-')
         self.range.setAlignment(Qt.AlignCenter)
 
+        self.showedges = QCheckBox('Show mesh edges')
+        self.showedges.setChecked(True)
+
     def setStyleSheets(self):
         self.timelabel.setStyleSheet("""
         QLabel {
@@ -95,6 +98,12 @@ class PlotMeshVarDialog(QDialog):
             }
         """)
 
+        self.showedges.setStyleSheet("""
+        QCheckBox {
+            color: rgb(180,180,180);
+            }
+        """)
+
     def setGridLayout(self):
         self.grid = QGridLayout()
         self.grid.setSpacing(10)
@@ -103,12 +112,14 @@ class PlotMeshVarDialog(QDialog):
         self.grid.addWidget(self.time, 0, 1, 1, 2)
         self.grid.addWidget(self.var, 1, 0, 1, 3)
 
-        self.grid.addWidget(self.ok, 3, 1)
-        self.grid.addWidget(self.cancel, 3, 2)
-
         self.grid.addWidget(self.min, 2, 0)
         self.grid.addWidget(self.range, 2, 1)
         self.grid.addWidget(self.max, 2, 2)
+
+        self.grid.addWidget(self.showedges, 3, 0, 1, 2)
+
+        self.grid.addWidget(self.ok, 4, 1)
+        self.grid.addWidget(self.cancel, 4, 2)
 
         self.setLayout(self.grid)
         self.show()
@@ -120,6 +131,7 @@ class PlotMeshVarDialog(QDialog):
     def cancelPlot(self):
         self.variable = None
         self.t = None
+        self.showgridedges = True
         self.close()
 
     def continuePlot(self):
@@ -128,6 +140,7 @@ class PlotMeshVarDialog(QDialog):
             self.cancelPlot()
         else:
             self.t = self.time.value()
+            self.showgridedges = self.showedges.isChecked()
             self.close()
 
 ################################################################################################################################################################
