@@ -9,7 +9,7 @@ from matplotlib.colors import ListedColormap
 import argparse
 import progressbar as pp
 import time
-from pathos.multiprocessing import ProcessingPool as PathosPool
+#from pathos.multiprocessing import ProcessingPool as PathosPool
 import PyQt5.QtCore
 from PyQt5.QtCore    import *
 from PyQt5.QtWidgets import *

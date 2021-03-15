@@ -11,6 +11,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 import matplotlib.image as mpimg
 
+
 class TimeSeries(QWidget):
         def __init__(self, label, parent = None):
             super(TimeSeries, self).__init__(parent)
