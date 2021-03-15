@@ -43,7 +43,7 @@ class PlotMeshVarDialog(QDialog):
         self.range.setAlignment(Qt.AlignCenter)
 
         self.showedges = QCheckBox('Show mesh edges')
-        self.showedges.setChecked(True)
+        self.showedges.setChecked(False)
 
     def setStyleSheets(self):
         self.timelabel.setStyleSheet("""
