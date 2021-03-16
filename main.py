@@ -794,8 +794,8 @@ class MyTableWidget(QWidget):
             self.ax.clear()
             self.figure.clf()
             self.ax = self.figure.add_subplot(111)
-            plotVarMesh(self.X, self.Y, self.ikle, var, label_str, min = varmin, max = varmax, ax = self.ax, fig = self.figure, showedges = dlg.showgridedges)
-            
+            plotVarMesh(self.X, self.Y, self.ikle, var, label_str, min = varmin, max = varmax, ax = self.ax, fig = self.figure, showedges = dlg.showgridedges, showgrid=dlg.showagrid)
+
             self.canvas.draw()
 
             self.ReloadMesh.setDisabled(False)

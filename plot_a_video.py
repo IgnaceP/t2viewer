@@ -9,7 +9,7 @@ from matplotlib.colors import ListedColormap
 import argparse
 import progressbar as pp
 import time
-#from pathos.multiprocessing import ProcessingPool as PathosPool
+from pathos.multiprocessing import ProcessingPool as PathosPool
 import PyQt5.QtCore
 from PyQt5.QtCore    import *
 from PyQt5.QtWidgets import *
@@ -113,19 +113,30 @@ class VideoThread_v1(QThread):
 
             return 'tmp/frame_%d.png' % i
 
+        t0 = time.time()
+
         for i in range(cols):
             createFrame(i, tc, times, a1, f)
+
+            dt = time.time() - t0
+            estimated_time = dt*(cols - i)
+            hrs = estimated_time//3600
+            min = estimated_time%3600/60
+
+            self.sig1.emit('Generating video is at %.2f %s and the estimated remaining time is: %.0f hr and %.2f min.' % (i/cols * 100, '%', hrs, min))
+            t0 = time.time()
 
         if not self.fn.endswith('.mp4'): self.fn + '.mp4'
 
         #command = ('mencoder tmp/*.png -mf type=png:fps=1 -ovc lavc -lavcopts vcodec=mpeg4 -oac copy -o %s' % self.fn)
-        command = 'ffmpeg -y -r 1 -i tmp/%%d.png %s' % self.fn
+        command = 'ffmpeg -y -r 1 -i tmp/*.png %s' % self.fn
         os.system(command)
 
         self.sig1.emit('Video is ready and stored at %s!' % output_path)
         dt = time.time()-start_time
         min = dt//60
         sec = dt%60
+        #os.system('rm tmp/*')
         print("Writing the video took "+ str(int(min))+ " minutes and "+str(int(sec)) + " seconds.")
 
 class VideoThread(QThread):
@@ -250,7 +261,7 @@ class VideoThread(QThread):
         sec = dt%60
         print("Writing the video took "+ str(int(min))+ " minutes and "+str(int(sec)) + " seconds.")
 
-class VideoThread(QThread):
+class VideoThread_v2(QThread):
     sig1 = pyqtSignal(str)
 
     def __init__(self, parent=None):

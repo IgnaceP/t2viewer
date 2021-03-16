@@ -106,6 +106,49 @@ class TimeSeries(QWidget):
                 }
             """)
 
+            # buttons to zoom and pan
+            self.zoombut = QPushButton()
+            self.zoombut.setCheckable(True)
+            self.zoombut.setEnabled(False)
+            im = QIcon('support_files/zoom_trans.png')
+            self.zoombut.setIcon(im)
+            self.zoombut.setDisabled(True)
+            self.zoombut.clicked.connect(self.zoom)
+            self.zoombut.setStyleSheet("""
+            QPushButton {
+                border-width: 25px solid white;
+                border-radius: 0px;
+                color: rgb(180,180,180);
+                background-color: rgb(55, 55, 60, 0);
+                }
+            QPushButton:checked {
+                color: rgb(100,100,100,150);
+                background-color: rgb(255, 128, 0);
+                }
+            """)
+
+            self.homebut = QPushButton()
+            self.homebut.setEnabled(False)
+            im = QIcon('support_files/home_trans.png')
+            self.homebut.setIcon(im)
+            self.homebut.setDisabled(True)
+            self.homebut.clicked.connect(self.home)
+            self.homebut.setStyleSheet("""
+            QPushButton {
+                border-width: 25px solid white;
+                border-radius: 0px;
+                color: rgb(180,180,180,50);
+                background-color: rgb(25, 25, 60, 0);
+                }
+            QPushButton:pressed {
+                color: rgb(100,100,100,150);
+                background-color: rgb(255, 128, 0);
+                }
+            """)
+
+            self.toolbar = NavigationToolbar(self.canvas, self)
+            self.toolbar.hide()
+
         def implementGrid(self):
             grid = QGridLayout()
             grid.addWidget(self.canvas,0,0)
@@ -116,6 +159,10 @@ class TimeSeries(QWidget):
             box1.addWidget(self.AddExtSeries)
             box1.addWidget(self.SaveNPY)
             box1.addStretch()
+            box1.addWidget(self.zoombut)
+            box1.addWidget(self.homebut)
+            box1.addWidget(QLabel())
+
             box2 = QHBoxLayout()
             box2.addStretch()
             box2.addLayout(box1)
@@ -129,6 +176,8 @@ class TimeSeries(QWidget):
             self.Export.setEnabled(True)
             self.AddExtSeries.setEnabled(True)
             self.SaveNPY.setEnabled(True)
+            self.zoombut.setEnabled(True)
+            self.homebut.setEnabled(True)
 
             self.x, self.y = x, y
             self.T = T
@@ -213,10 +262,20 @@ class TimeSeries(QWidget):
                     self.ax.set_ylim(max(-999,self.varmin - 0.1*self.varrange), min(999,self.varmax + 0.1*self.varrange))
                     self.canvas.draw()
 
+        def home(self):
+            self.toolbar.home()
+
+        def zoom(self):
+            if self.zoombut.isChecked():
+                self.toolbar.zoom()
+                self.record_pressing_event = False
+            else:
+                self.toolbar.zoom(False)
+
 
 
 ###########################################################################################################################################################################################################
-def plotVarMesh(x,y,ikle,var, label_str, title_str = '', path = None, min = 0, max = 1e9, ax = None, fig = None, showedges = True):
+def plotVarMesh(x,y,ikle,var, label_str, title_str = '', path = None, min = 0, max = 1e9, ax = None, fig = None, showedges = True, showgrid = True):
 
     # ------------------------------------------------------------------------------ #
     # Plot the Mesh
@@ -242,6 +301,17 @@ def plotVarMesh(x,y,ikle,var, label_str, title_str = '', path = None, min = 0, m
 
     if len(title_str) > 0:
         ax.set_title(title_str, color = 'white')
+
+    if showgrid:
+        ax.axis('on')
+        ax.tick_params(axis='x', colors='white', labelsize = 7, top = True, bottom = False, labeltop = True)
+        ax.tick_params(axis='y', colors='white', labelsize = 7)
+        ax.spines['bottom'].set_color('white')
+        ax.spines['top'].set_color('white')
+        ax.spines['right'].set_color('white')
+        ax.spines['left'].set_color('white')
+        ax.set_facecolor((45/255, 45/255, 45/255))
+        ax.grid('on', color = 'white')
 
     divider = make_axes_locatable(ax)
     cax = divider.append_axes("bottom", size="5%", pad=0.05)
