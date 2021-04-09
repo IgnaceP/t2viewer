@@ -313,6 +313,31 @@ class MyTableWidget(QWidget):
             }
         """)
 
+
+        # Push button to open dialog to locate a value
+        self.LocateValue = QPushButton('Locate value')
+        self.LocateValue.setDisabled(True)
+        self.LocateValue.clicked.connect(self.locateValue)
+        self.LocateValue.setToolTip('Locate a value on the mesh (e.g. maximum h in mangroves).')
+        self.LocateValue.setStyleSheet("""
+        QPushButton {
+            border-width: 25px solid white;
+            border-radius: 5px;
+            color: rgb(180,180,180);
+            background-color: rgb(55, 55, 60);
+            min-height: 40px;
+            }
+        QPushButton:pressed {
+            color: rgb(120,120,120);
+            background-color: rgb(75, 75, 80);
+            }
+        QPushButton:disabled {
+            color: rgb(50,50,50);
+            background-color: rgb(25, 25, 25);
+            }
+        """)
+
+
         self.LoadPrevious = QCheckBox('Ignore previously saved meshes')
         self.LoadPrevious.setChecked(True)
         self.LoadPrevious.setToolTip('Ignore existing files in previously_loaded_meshes and copy loaded files to this directory.')
@@ -332,6 +357,7 @@ class MyTableWidget(QWidget):
          background-color: rgb(35,35,35);
         }
         """)
+
 
         # ------------#
         # Time Series #
@@ -465,6 +491,18 @@ class MyTableWidget(QWidget):
             }
         """)
 
+        # label to show bathymetry
+        self.Station_label = QLabel()
+        self.Station_label.setFixedWidth(125)
+        self.Station_label.setStyleSheet("""
+        QLabel {
+            color: rgb(255,128,0);
+            font-size: 10pt;
+            background-color: rgb(35, 35, 35);
+            }
+        """)
+
+
 
 
         #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -482,6 +520,7 @@ class MyTableWidget(QWidget):
         self.grid.addWidget(self.homebut, 9, 4, 1, 1)
 
         self.grid.addWidget(self.Bath_label, 9, 5)
+        self.grid.addWidget(self.Station_label, 9, 6)
 
         self.grid.addWidget(Load,0,11,1,1)
         self.grid.addWidget(self.Path_label, 0,12,1,3)
@@ -502,6 +541,7 @@ class MyTableWidget(QWidget):
         self.box_buttons.addWidget(self.VideoSettings)
         self.box_buttons.addWidget(self.PlotMesh)
         self.box_buttons.addWidget(self.ReloadMesh)
+        self.box_buttons.addWidget(self.LocateValue)
         self.box_buttons.addWidget(self.LoadPrevious)
         self.box_buttons.addWidget(self.RemovePrevious)
         self.box_buttons.addStretch()
@@ -549,6 +589,7 @@ class MyTableWidget(QWidget):
         self.addcoor.setEnabled(True)
 
         self.Video.setEnabled(True)
+        self.LocateValue.setEnabled(True)
         self.VideoSettings.setEnabled(True)
         self.PlotSeries.setEnabled(True)
         self.PlotMesh.setEnabled(True)
@@ -585,12 +626,12 @@ class MyTableWidget(QWidget):
         self.XY[:,0], self.XY[:,1] = X, Y
 
         # time series
-        start_date = np.datetime64('2015-01-01T00:00:00')
+        start_date = np.datetime64('2019-03-21T09:00:00')
         T = np.array([start_date], dtype = np.datetime64)
-        for i in range(np.shape(self.times)[0]):
+        for i in range(1,np.shape(self.times)[0]):
             td = np.timedelta64(int(self.times[i]),'s')
             T = np.append(T,start_date + td)
-        self.T = T[1:]
+        self.T = T
 
         start_t = str(self.T[0])
         self.start_time.setText(start_t)
@@ -651,7 +692,7 @@ class MyTableWidget(QWidget):
         self.Bath_label.setText('Bath: ' + bath_str + " m\nManning's n: " + frict_str + '\nIndex: ' + i_str)
 
     def setVideoSettings(self):
-        dlg = VideoSettingDialog(None)
+        dlg = VideoSettingDialog(self.ax.get_xlim() + self.ax.get_ylim())
 
         if self.videosettingschanged:
             if self.videolims != None:
@@ -751,6 +792,8 @@ class MyTableWidget(QWidget):
             self.scat1 = self.ax.scatter(event.xdata, event.ydata, s = 25, color = (1, 128/255, 0), zorder = 1e9)
             self.canvas.draw()
 
+            self.Station_label.setText('')
+
     def addCoorToMap(self):
         dlg = AddCoorDialog(None)
         dlg.exec_()
@@ -767,10 +810,11 @@ class MyTableWidget(QWidget):
             self.X_box.setText('%.2f' % x)
             self.Y_box.setText('%.2f' % y)
 
+            self.Station_label.setText(dlg.StationName)
+
     def plotMeshVar(self):
 
         dlg = PlotMeshVarDialog(None)
-        dlg.var.addItems(['u (m/s)', 'v (m/s)','water depth (m)','water surface (m)','Bathymetry (m)', 'Friction Coefficient'])
         dlg.time.setRange(0, len(self.times)-1)
         dlg.time.setValue(len(self.times)-1)
 
@@ -782,11 +826,15 @@ class MyTableWidget(QWidget):
         if dlg.variable == 4: var = self.SE; label_str = 'Water Surface Elevation [m] at timestep %d' % dlg.t
         if dlg.variable == 5: var = self.B; label_str = 'Bathymetry [m] at timestep %d' % dlg.t
         if dlg.variable == 6: var = self.N; label_str = "Manning's n at timestep %d" % dlg.t
+        if dlg.variable == 7: var = np.max(self.SE, axis = 1); label_str = "Maximum Water Surface Elevation [m]"
+        if dlg.variable == 8: var = np.min(self.SE, axis = 1); label_str = "Maximum Water Surface Elevation [m]"
+        if dlg.variable == 9: var = np.max(self.H, axis = 1); label_str = "Minimum Water Depth [m]"
+        if dlg.variable == 10: var = np.min(self.H, axis = 1); label_str = "Minimum Water Depth [m]"
 
 
         if dlg.variable != None:
 
-            if var.ndim == 2: var = var[:,dlg.t]
+            if var.ndim == 2 and dlg.variable < 10: var = var[:,dlg.t]
 
             if len(dlg.min.text()) == 0 or len(dlg.max.text()) == 0: varmin, varmax = np.min(var),np.max(var)
             else: varmin, varmax = float(dlg.min.text()),float(dlg.max.text())
@@ -799,6 +847,43 @@ class MyTableWidget(QWidget):
             self.canvas.draw()
 
             self.ReloadMesh.setDisabled(False)
+            self.LocateValue.setDisabled(False)
+
+    def locateValue(self):
+        dlg = LocateValueDialog(None)
+        dlg.exec_( )
+
+        if dlg.variable != None:
+            if dlg.var.currentIndex() == 1: var = self.U; unit_str = 'm/s'; var_str = 'u'
+            if dlg.var.currentIndex() == 2: var = self.V; unit_str = 'm/s'; var_str = 'v'
+            if dlg.var.currentIndex() == 3: var = self.H; unit_str = 'm'; var_str = 'h'
+            if dlg.var.currentIndex() == 4: var = self.SE; unit_str = 'm'; var_str = 'SE'
+
+            #if dlg.reducer.currentText() == 'maximum': var = np.max(var, axis = 1)
+            #if dlg.reducer.currentText() == 'minimum': var = np.min(var, axis = 1)
+
+            if dlg.constvar.currentIndex() == 0: mask = self.B[:,0]
+            if dlg.constvar.currentIndex() == 1: mask = self.N[:,0]
+
+            if dlg.rel.currentText() == '>': mask = (mask < float(dlg.tresh.text()))
+            elif dlg.rel.currentText() == '<': mask = (mask > float(dlg.tresh.text()))
+            elif dlg.rel.currentText() == '=': mask = (mask == float(dlg.tresh.text()))
+            else: print('woops')
+
+            var_masked = var[mask]
+
+            if dlg.reducer.currentText() == 'maximum':m = np.max(var_masked); am = np.where(var == m); lab = ' max '
+            if dlg.reducer.currentText() == 'minimum':m = np.min(var_masked); am = np.where(var == m); lab = ' min '
+            am = am[0][0]
+
+            x = self.X[am]
+            y = self.Y[am]
+            self.locval = self.ax.scatter(x,y,s = 60,c = 'aquamarine')
+            lab += '%s: %.2f %s' % (var_str, m, unit_str)
+            self.loclabel = self.ax.annotate(lab,(x,y),fontsize = 8, c = 'aquamarine', bbox =dict(boxstyle="square", fc="0.1"))
+            self.canvas.draw()
+
+
 
     def reloadMesh(self):
         self.ax.clear()

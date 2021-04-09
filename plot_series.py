@@ -10,6 +10,9 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 import matplotlib.image as mpimg
+from pandas.plotting import register_matplotlib_converters
+register_matplotlib_converters()
+
 
 
 class TimeSeries(QWidget):
@@ -178,6 +181,8 @@ class TimeSeries(QWidget):
             self.SaveNPY.setEnabled(True)
             self.zoombut.setEnabled(True)
             self.homebut.setEnabled(True)
+            self.new_series = []
+            self.new_series_labels = []
 
             self.x, self.y = x, y
             self.T = T
@@ -230,8 +235,8 @@ class TimeSeries(QWidget):
 
             if len(fn) > 0:
                 if fn[-4:] != '.npy': fn + '.npy'
-                T = self.T[self.mask]
-                var = self.var[self.mask]
+                T = self.T - np.timedelta64(3600,'s')
+                var = self.var
                 arr = np.empty((T.shape[0], 2))
                 arr[:,0] = T
                 arr[:,1] = var
@@ -252,14 +257,15 @@ class TimeSeries(QWidget):
 
                 else:
                     self.new_series.append(arr)
-                    self.new_series_labels.append(fn.split('/')[-1])
-                    T = np.array(arr[:,0], dtype = 'datetime64')
-                    self.ax.plot(T, arr[:,1], '.-', label = fn.split('/')[-1])
+                    lab = fn.split('/')[-1][:-4].replace('_',' ')
+                    self.new_series_labels.append(lab)
+                    T = np.array(arr[:,0], dtype = 'datetime64') + np.timedelta64(3600,'s')
+                    self.ax.plot(T, arr[:,1], '.-', label = lab, scalex = False, scaley = False)
                     self.ax.legend(loc = 1)
                     self.varmin = np.min([self.varmin, np.min(arr[:,1])])
                     self.varmax = np.max([self.varmax, np.max(arr[:,1])])
                     self.varrange = abs(self.varmax - self.varmin)
-                    self.ax.set_ylim(max(-999,self.varmin - 0.1*self.varrange), min(999,self.varmax + 0.1*self.varrange))
+                    #self.ax.set_ylim(max(-999,self.varmin - 0.1*self.varrange), min(999,self.varmax + 0.1*self.varrange))
                     self.canvas.draw()
 
         def home(self):

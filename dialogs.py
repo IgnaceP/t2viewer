@@ -4,6 +4,7 @@ from PyQt5.QtCore    import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui     import *
 import numpy as np
+import pandas as pd
 
 ################################################################################################################################################################
 class PlotMeshVarDialog(QDialog):
@@ -31,6 +32,8 @@ class PlotMeshVarDialog(QDialog):
 
         self.var = QComboBox()
         self.var.addItem('Pick a variable')
+        self.var.addItems(['u (m/s)', 'v (m/s)','water depth (m)','water surface (m)','Bathymetry (m)', 'Friction Coefficient','max water surface (m)','min water surface (m)', 'max water depth (m)', 'min water depth (m)'])
+        self.var.activated.connect(self.toggleTime)
 
         self.ok = QPushButton('Ok')
         self.ok.clicked.connect(self.continuePlot)
@@ -139,6 +142,22 @@ class PlotMeshVarDialog(QDialog):
         if event.key() == Qt.Key_Escape:
             self.cancelPlot()
 
+    def toggleTime(self,i):
+        if self.var.currentIndex() > 7:
+            self.time.setDisabled(True)
+            self.time.setStyleSheet("""
+            QSpinBox {
+                color: rgb(100,100,100);
+            }
+            """)
+        else:
+            self.time.setEnabled(True)
+            self.time.setStyleSheet("""
+            QSpinBox {
+                color: rgb(180,180,180);
+            }
+            """)
+
     def cancelPlot(self):
         self.variable = None
         self.t = None
@@ -159,7 +178,7 @@ class PlotMeshVarDialog(QDialog):
 ################################################################################################################################################################
 
 class VideoSettingDialog(QDialog):
-    def __init__(self, parent = None):
+    def __init__(self, lims, parent = None):
         super(VideoSettingDialog, self).__init__(parent)
 
         self.setWindowTitle('Video Settings')
@@ -171,6 +190,7 @@ class VideoSettingDialog(QDialog):
         """)
 
         self.variable = 0
+        self.axlims = lims
 
         self.createWidgets()
         self.setStyleSheets()
@@ -210,12 +230,15 @@ class VideoSettingDialog(QDialog):
         self.WinRight.setRange(-1e9,1e9)
         self.spinboxes = [self.WinLeft, self.WinTop, self.WinBot, self.WinRight, self.Min, self.Max]
 
+        self.set_ax_lims = QPushButton('Use Ax Limits')
+        self.set_ax_lims.setDisabled(True)
+        self.set_ax_lims.clicked.connect(self.setAxLims)
+
         self.Empty1 = QLabel()
         self.Empty1.setFixedSize(5,5)
         self.Empty2 = QLabel()
         self.Empty2.setFixedSize(5,5)
         self.empties = [self.Empty1, self.Empty2]
-
 
         self.ok = QPushButton('Ok')
         self.ok.clicked.connect(self.continuePlot)
@@ -287,13 +310,19 @@ class VideoSettingDialog(QDialog):
         }
         """)
 
+        self.set_ax_lims.setStyleSheet("""
+        QPushButton {
+            color: rgb(180,180,180);
+            background-color: rgb(55, 55, 60);
+        }
+        """)
+
         for empty in self.empties:
             empty.setStyleSheet("""
             QLabel {
                 background-color:rgb(31,31,31);
                 }
                 """)
-
 
     def setGridLayout(self):
         self.grid = QGridLayout()
@@ -320,6 +349,7 @@ class VideoSettingDialog(QDialog):
         grid_lim.addWidget(self.WinRight, 2,3)
         grid_lim.addWidget(self.WinTop, 1,2)
         grid_lim.addWidget(self.WinBot, 3,2)
+        grid_lim.addWidget(self.set_ax_lims,4,1,1,3)
         self.grid.addLayout(grid_lim, 4, 0, 1, 2)
 
         box2 = QHBoxLayout()
@@ -336,11 +366,13 @@ class VideoSettingDialog(QDialog):
             self.WinBot.setEnabled(True)
             self.WinLeft.setEnabled(True)
             self.WinRight.setEnabled(True)
+            self.set_ax_lims.setEnabled(True)
         else:
             self.WinTop.setDisabled(True)
             self.WinBot.setDisabled(True)
             self.WinLeft.setDisabled(True)
             self.WinRight.setDisabled(True)
+            self.set_ax_lims.setDisabled(True)
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Escape:
@@ -361,6 +393,12 @@ class VideoSettingDialog(QDialog):
 
             self.good_exit = True
             self.close()
+
+    def setAxLims(self):
+        self.WinLeft.setValue(self.axlims[0])
+        self.WinRight.setValue(self.axlims[1])
+        self.WinBot.setValue(self.axlims[2])
+        self.WinTop.setValue(self.axlims[3])
 
 ################################################################################################################################################################
 
@@ -383,14 +421,19 @@ class AddCoorDialog(QDialog):
     def createWidgets(self):
 
         self.XLabel = QLabel('x-coordinate:')
-        self.XLabel.setAlignment(Qt.AlignRight)
+        self.XLabel.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.X = QSpinBox()
         self.X.setRange(0,1e9)
 
         self.YLabel = QLabel('y-coordinate:')
-        self.YLabel.setAlignment(Qt.AlignRight)
+        self.YLabel.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.Y = QSpinBox()
         self.Y.setRange(0,1e9)
+
+        self.StationPicker = QComboBox()
+        self.StationPicker.addItem('or pick a station...')
+        self.loadStations()
+        self.StationPicker.activated.connect(self.setStationCoors)
 
         self.ok = QPushButton('Ok')
         self.ok.clicked.connect(self.continuePlot)
@@ -438,6 +481,11 @@ class AddCoorDialog(QDialog):
         }
         """)
 
+        self.StationPicker.setStyleSheet("""
+        QComboBox {
+            color: rgb(180,180,180);
+        }
+        """)
 
     def setGridLayout(self):
         self.grid = QGridLayout()
@@ -449,11 +497,39 @@ class AddCoorDialog(QDialog):
         self.grid.addWidget(self.X, 0, 1)
         self.grid.addWidget(self.Y, 1, 1)
 
-        self.grid.addWidget(self.ok, 2, 0)
-        self.grid.addWidget(self.cancel, 2, 1)
+        self.grid.addWidget(self.StationPicker, 2, 0, 1, 2)
+
+        self.grid.addWidget(self.ok, 4, 0)
+        self.grid.addWidget(self.cancel, 4, 1)
 
         self.setLayout(self.grid)
         self.show()
+
+    def loadStations(self):
+        self.Station_xs = []
+        self.Station_ys = []
+        self.Station_names = []
+        self.StationName = ''
+        stations_df = pd.read_csv('./support_files/Stations.csv')
+        for i in range(len(stations_df.Name)):
+            name = stations_df.Name[i].replace('_',' ')
+            self.StationPicker.addItem(name)
+            self.Station_names.append(name)
+            self.Station_xs.append(stations_df.X[i])
+            self.Station_ys.append(stations_df.Y[i])
+
+        stations_df = pd.read_csv('./support_files/Diver_locations.csv')
+        for i in range(len(stations_df.Name)):
+            name = stations_df.Name[i].replace('_',' ')
+            self.StationPicker.addItem(name)
+            self.Station_names.append(name)
+            self.Station_xs.append(stations_df.X[i])
+            self.Station_ys.append(stations_df.Y[i])
+
+    def setStationCoors(self,i):
+        self.X.setValue(self.Station_xs[i-1])
+        self.Y.setValue(self.Station_ys[i-1])
+        self.StationName = self.Station_names[i-1]
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Escape:
@@ -467,4 +543,203 @@ class AddCoorDialog(QDialog):
             self.good_exit = True
             self.x = self.X.value()
             self.y = self.Y.value()
+
+            if np.min(abs(self.x-np.asarray(self.Station_xs))) > 1: self.StationName = ''
+            if np.min(abs(self.y-np.asarray(self.Station_ys))) > 1: self.StationName = ''
+
             self.close()
+
+################################################################################################################################################################
+
+class LocateValueDialog(QDialog):
+    def __init__(self, parent = None):
+        super(LocateValueDialog, self).__init__(parent)
+
+        self.setWindowTitle('Locate a value on the mesh')
+
+        self.setStyleSheet("QWidget {background-color: rgb(35, 35, 35);}")
+
+        self.variable = 0
+
+        self.createWidgets()
+        self.setStyleSheets()
+
+    def createWidgets(self):
+        grid = QGridLayout()
+
+        self.l1 = QLabel('Get')
+        grid.addWidget(self.l1, 0, 0)
+        self.reducer = QComboBox()
+        self.reducer.addItem('maximum')
+        grid.addWidget(self.reducer, 0, 1)
+
+        self.l2 = QLabel('Of')
+        grid.addWidget(self.l2, 0, 2)
+        self.var = QComboBox()
+        self.var.addItem('Pick a variable')
+        self.var.addItems(['u (m/s)', 'v (m/s)','water depth (m)','water surface (m)'])
+        grid.addWidget(self.var, 0, 3)
+
+        self.l3 = QLabel('where')
+        self.constvar = QComboBox()
+        self.constvar.addItem('Bathymetry')
+        self.constvar.addItem('Friction')
+        self.rel = QComboBox()
+        self.rel.addItems(['>','<','='])
+        self.tresh = QLineEdit()
+        self.tresh.setText('-9999')
+        grid.addWidget(self.l3, 1, 0)
+        grid.addWidget(self.constvar, 1, 1)
+        grid.addWidget(self.rel, 1, 2)
+        grid.addWidget(self.tresh, 1, 3)
+
+        self.ok = QPushButton('Ok')
+        self.ok.clicked.connect(self.continueDialog)
+        self.cancel = QPushButton('Cancel')
+        self.cancel.clicked.connect(self.cancelDialog)
+        grid.addWidget(self.ok,2,0,1,2)
+        grid.addWidget(self.cancel,2,2,1,2)
+
+        self.setLayout(grid)
+        self.show()
+
+    def setStyleSheets(self):
+        self.l1.setStyleSheet("QLabel {color: rgb(180,180,180);padding: 10px;}")
+        self.l2.setStyleSheet("QLabel {color: rgb(180,180,180);padding: 10px;}")
+        self.l3.setStyleSheet("QLabel {color: rgb(180,180,180);padding: 10px;}")
+
+        self.reducer.setStyleSheet("QComboBox {color: rgb(180,180,180);}")
+        self.var.setStyleSheet("QComboBox {color: rgb(180,180,180);}")
+        self.constvar.setStyleSheet("QComboBox {color: rgb(180,180,180);}")
+        self.rel.setStyleSheet("QComboBox {color: rgb(180,180,180);}")
+
+        self.tresh.setStyleSheet("QLineEdit {color: rgb(180,180,180);}")
+
+        self.ok.setStyleSheet("QPushButton {color: rgb(180,180,180);background-color: rgb(55, 55, 60);}")
+
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            self.cancelPlot()
+
+    def cancelDialog(self):
+        self.variable = None
+        self.close()
+
+    def continueDialog(self):
+        self.variable = self.var.currentIndex()
+        if self.variable == 0:
+            self.cancelDialog()
+        else:
+            self.close()
+
+################################################################################################################################################################
+
+
+class loadSelafinDialog(QDialog):
+    def __init__(self, varlist, parent = None):
+        super(loadSelafinDialog, self).__init__(parent)
+
+        self.setWindowTitle('Load a selafin file')
+
+        self.setStyleSheet("QWidget {background-color: rgb(35, 35, 35);}")
+
+        self.varlist = varlist
+
+        self.createWidgets()
+
+    def createWidgets(self):
+        grid = QGridLayout()
+
+        self.labels = []
+        t = 0
+
+        for var in self.varlist:
+            self.labels.append(QLabel('%d. %s' % (t + 1, var)))
+            grid.addWidget(self.labels[-1], t, 0)
+            t += 1
+
+        self.ul = QLabel('x-dir velocity (u):')
+        self.ul.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        grid.addWidget(self.ul, 0, 1)
+        self.labels.append(self.ul)
+        self.vl = QLabel('y-dir velocity (v):')
+        self.vl.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        grid.addWidget(self.vl, 1, 1)
+        self.labels.append(self.vl)
+        self.hl = QLabel('water depth (h):')
+        self.hl.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        grid.addWidget(self.hl, 2, 1)
+        self.labels.append(self.hl)
+        self.bl = QLabel('bathymetry (b):')
+        self.bl.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        grid.addWidget(self.bl, 3, 1)
+        self.labels.append(self.bl)
+        self.nl = QLabel('friction coefficient (n):')
+        self.nl.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        grid.addWidget(self.nl, 4, 1)
+        self.labels.append(self.nl)
+
+        self.lineedits = []
+        self.u = QLineEdit()
+        self.u.setText('1')
+        self.lineedits.append(self.u)
+        grid.addWidget(self.u, 0, 2)
+        self.v = QLineEdit()
+        self.v.setText('2')
+        self.lineedits.append(self.v)
+        grid.addWidget(self.v, 1, 2)
+        self.h = QLineEdit()
+        self.h.setText('3')
+        self.lineedits.append(self.h)
+        grid.addWidget(self.h, 2, 2)
+        self.b = QLineEdit()
+        self.b.setText('4')
+        self.lineedits.append(self.b)
+        grid.addWidget(self.b, 3, 2)
+        self.n = QLineEdit()
+        self.n.setText('5')
+        self.lineedits.append(self.n)
+        grid.addWidget(self.n, 4, 2)
+
+
+        self.ok = QPushButton('Ok')
+        self.ok.clicked.connect(self.continueDialog)
+        self.cancel = QPushButton('Cancel')
+        self.cancel.clicked.connect(self.cancelDialog)
+        grid.addWidget(self.ok,t,1)
+        grid.addWidget(self.cancel,t,2)
+
+        self.setStyleSheets()
+
+        self.setLayout(grid)
+        self.show()
+    def setStyleSheets(self):
+
+        for label in self.labels:
+            label.setStyleSheet("QLabel {color: rgb(180,180,180);padding: 10px;}")
+
+        for lineedit in self.lineedits:
+            lineedit.setStyleSheet("QLineEdit {color: rgb(180,180,180);}")
+
+        self.ok.setStyleSheet("QPushButton {color: rgb(180,180,180);background-color: rgb(55, 55, 60);}")
+        self.cancel.setStyleSheet("QPushButton {color: rgb(180,180,180);background-color: rgb(55, 55, 60);}")
+
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            self.cancelPlot()
+
+    def cancelDialog(self):
+        self.var_indices = None
+        self.close()
+
+    def continueDialog(self):
+        self.var_indices = []
+        for lineedit in self.lineedits:
+            a = lineedit.text()
+            a = int(a)
+            self.var_indices.append(a-1)
+
+        self.var_indices = np.asarray(self.var_indices, dtype = int)
+        self.close()

@@ -7,7 +7,7 @@ import os
 import matplotlib.pylab as pl
 from matplotlib.colors import ListedColormap
 from shutil import copyfile
-
+from dialogs import loadSelafinDialog
 
 def loadMeshFromSLF(output_fn, figure = None, canvas = None, ignore_previously_saved_files = False, return_tc = False):
     """
@@ -30,6 +30,17 @@ def loadMeshFromSLF(output_fn, figure = None, canvas = None, ignore_previously_s
             data = slf.import_data(step = None)
             slf.close()
             print('Selafin loaded!')
+
+            dlg = loadSelafinDialog(slf.vnames)
+            dlg.exec_( )
+
+            u = data[dlg.var_indices[0]]
+            v = data[dlg.var_indices[1]]
+            h = data[dlg.var_indices[2]]
+            b = data[dlg.var_indices[3]]
+            n = data[dlg.var_indices[4]]
+            data = np.zeros([5,h.shape[0], h.shape[1]])
+            data[0,:,:] = u;data[1,:,:] = v;data[2,:,:] = h;data[3,:,:] = b;data[4,:,:] = n;
 
             print('Saving box...')
             xmin, xmax = np.min(slf.x), np.max(slf.x)
