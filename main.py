@@ -626,7 +626,7 @@ class MyTableWidget(QWidget):
         self.XY[:,0], self.XY[:,1] = X, Y
 
         # time series
-        start_date = np.datetime64('2019-03-21T09:00:00')
+        start_date = np.datetime64('2019-10-07T04:00:00')
         T = np.array([start_date], dtype = np.datetime64)
         for i in range(1,np.shape(self.times)[0]):
             td = np.timedelta64(int(self.times[i]),'s')
